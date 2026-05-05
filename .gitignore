@@ -1,0 +1,47 @@
+# Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Notebook / editor / OS noise
+.ipynb_checkpoints/
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+
+# Obsidian local UI state
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Model outputs, checkpoints, and generated artifacts
+runs/
+checkpoints/
+outputs/
+artifacts/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+
+# Hugging Face / dataset / build caches
+.cache/
+cache/
+hf_cache/
+wandb/
+mlruns/
+
+# Secrets and local environment files
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+id_ed25519*
