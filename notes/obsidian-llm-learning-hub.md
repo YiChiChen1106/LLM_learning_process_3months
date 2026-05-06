@@ -44,10 +44,12 @@
 ### 4. Transformer / Mini GPT
 
 - 目标：从零理解 decoder-only Transformer
+- 学习记录：[[2026-05-06]]
 - 关键问题：
   - self-attention 在算什么？
   - causal mask 为什么必要？
   - residual、LayerNorm、FFN 各自解决什么问题？
+  - train loss 和 validation loss 如何帮助判断过拟合？
 
 ### 5. LoRA / QLoRA
 
@@ -145,6 +147,7 @@ A: 神经网络不能直接处理字符串，它只能处理数字张量。token
 
 - [[text-classifier-day2]]
 - [[tiny-lm-day3]]
+- [[2026-05-06]]
 - [[experiments/tiny-lm-block-dim|Tiny LM block/dim 实验]]
 - [[lora-qlora]]
 - [[transformer-from-scratch]]
