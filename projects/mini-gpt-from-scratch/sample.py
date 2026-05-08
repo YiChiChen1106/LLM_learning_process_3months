@@ -32,7 +32,11 @@ def main() -> None:
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--top-k", type=int, default=None)
     parser.add_argument("--top-p", type=float, default=None)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--greedy", action="store_true")
     args = parser.parse_args()
+    if args.seed is not None:
+        torch.manual_seed(args.seed)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     checkpoint = torch.load(args.checkpoint, map_location=device)
@@ -60,7 +64,10 @@ def main() -> None:
         if args.top_p is not None:
             next_token_logits = apply_top_p_filtering(next_token_logits, args.top_p)
         probs = torch.softmax(next_token_logits, dim=-1)
-        next_id = torch.multinomial(probs, num_samples=1)
+        if args.greedy:
+            next_id = torch.argmax(probs, dim=-1, keepdim=True)
+        else:
+            next_id = torch.multinomial(probs, num_samples=1)
         context = torch.cat([context, next_id], dim=1)
 
     print("".join(itos[int(i)] for i in context[0].tolist()))
