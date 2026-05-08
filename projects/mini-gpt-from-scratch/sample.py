@@ -49,26 +49,27 @@ def main() -> None:
 
     ids = [stoi.get(ch, 0) for ch in args.prompt]
     context = torch.tensor([ids], dtype=torch.long, device=device)
-    for _ in range(args.tokens):
-        cropped = context[:, -model.block_size :]
-        logits = model(cropped)
-        next_token_logits = logits[:, -1, :]
-        next_token_logits = next_token_logits / args.temperature
-        if args.top_k is not None:
-            values, _ = torch.topk(next_token_logits, args.top_k)
-            min_value = values[:, -1].unsqueeze(-1)
-            next_token_logits = next_token_logits.masked_fill(
-                next_token_logits < min_value,
-                float("-inf"),
-            )
-        if args.top_p is not None:
-            next_token_logits = apply_top_p_filtering(next_token_logits, args.top_p)
-        probs = torch.softmax(next_token_logits, dim=-1)
-        if args.greedy:
-            next_id = torch.argmax(probs, dim=-1, keepdim=True)
-        else:
-            next_id = torch.multinomial(probs, num_samples=1)
-        context = torch.cat([context, next_id], dim=1)
+    with torch.no_grad():
+        for _ in range(args.tokens):
+            cropped = context[:, -model.block_size :]
+            logits = model(cropped)
+            next_token_logits = logits[:, -1, :]
+            next_token_logits = next_token_logits / args.temperature
+            if args.top_k is not None:
+                values, _ = torch.topk(next_token_logits, args.top_k)
+                min_value = values[:, -1].unsqueeze(-1)
+                next_token_logits = next_token_logits.masked_fill(
+                    next_token_logits < min_value,
+                    float("-inf"),
+                )
+            if args.top_p is not None:
+                next_token_logits = apply_top_p_filtering(next_token_logits, args.top_p)
+            probs = torch.softmax(next_token_logits, dim=-1)
+            if args.greedy:
+                next_id = torch.argmax(probs, dim=-1, keepdim=True)
+            else:
+                next_id = torch.multinomial(probs, num_samples=1)
+            context = torch.cat([context, next_id], dim=1)
 
     print("".join(itos[int(i)] for i in context[0].tolist()))
 
