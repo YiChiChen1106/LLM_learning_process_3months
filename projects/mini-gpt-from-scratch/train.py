@@ -52,6 +52,31 @@ def estimate_loss(
     return losses[0], losses[1]
 
 
+def save_checkpoint(
+    path: Path,
+    model: MiniGPT,
+    stoi: dict[str, int],
+    itos: dict[int, str],
+    vocab_size: int,
+    block_size: int,
+) -> None:
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "stoi": stoi,
+            "itos": itos,
+            "config": {
+                "vocab_size": vocab_size,
+                "block_size": block_size,
+                "dim": 128,
+                "num_heads": 4,
+                "num_layers": 4,
+            },
+        },
+        path,
+    )
+
+
 def main() -> None:
     torch.manual_seed(42)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -67,7 +92,11 @@ def main() -> None:
 
     model = MiniGPT(len(chars), block_size=block_size, dim=128, num_heads=4, num_layers=4).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
-
+    best_val_loss = float("inf")
+    patience = 3
+    bad_eval_count = 0
+    out_dir = Path("runs")
+    out_dir.mkdir(exist_ok=True)
     for step in range(600):
         x, y = get_batch(train_data, block_size, batch_size=batch_size, device=device)
         logits = model(x)
@@ -87,18 +116,19 @@ def main() -> None:
                 device,
             )
             print(f"步骤={step:04d} train_loss={train_loss:.4f} val_loss={val_loss:.4f}")
+            if best_val_loss > val_loss:
+                best_val_loss = val_loss
+                bad_eval_count = 0
+                print(f"保存 best checkpoint: val_loss={best_val_loss:.4f}")
+                save_checkpoint(out_dir / "mini_gpt_best.pt", model, stoi, itos, len(chars), block_size)
+            else:
+                bad_eval_count += 1
+                print(f"validation loss 没有改善: {bad_eval_count}/{patience}")
+                if bad_eval_count >= patience:
+                    print("early stopping: validation loss 连续多次没有改善")
+                    break
 
-    out_dir = Path("runs")
-    out_dir.mkdir(exist_ok=True)
-    torch.save(
-        {
-            "model": model.state_dict(),
-            "stoi": stoi,
-            "itos": itos,
-            "config": {"vocab_size": len(chars), "block_size": block_size, "dim": 128, "num_heads": 4, "num_layers": 4},
-        },
-        out_dir / "mini_gpt.pt",
-    )
+    save_checkpoint(out_dir / "mini_gpt.pt", model, stoi, itos, len(chars), block_size)
 
 
 if __name__ == "__main__":
