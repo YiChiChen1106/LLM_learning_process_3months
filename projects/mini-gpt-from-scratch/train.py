@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import torch
@@ -78,6 +79,12 @@ def save_checkpoint(
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--max-steps", type=int, default=600)
+    parser.add_argument("--eval-interval", type=int, default=100)
+    parser.add_argument("--patience", type=int, default=3)
+    parser.add_argument("--learning-rate", type=float, default=3e-4)
+    args = parser.parse_args()
     torch.manual_seed(42)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     chars = sorted(set(TRAIN_CORPUS + VAL_CORPUS))
@@ -91,20 +98,20 @@ def main() -> None:
     eval_iters = 20
 
     model = MiniGPT(len(chars), block_size=block_size, dim=128, num_heads=4, num_layers=4).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     best_val_loss = float("inf")
-    patience = 3
+    patience = args.patience
     bad_eval_count = 0
     out_dir = Path("runs")
     out_dir.mkdir(exist_ok=True)
-    for step in range(600):
+    for step in range(args.max_steps):
         x, y = get_batch(train_data, block_size, batch_size=batch_size, device=device)
         logits = model(x)
         loss = F.cross_entropy(logits.view(-1, len(chars)), y.view(-1))
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
-        if step % 100 == 0 or step == 599:
+        if step % args.eval_interval == 0 or step == args.max_steps - 1:
             train_loss, val_loss = estimate_loss(
                 model,
                 train_data,

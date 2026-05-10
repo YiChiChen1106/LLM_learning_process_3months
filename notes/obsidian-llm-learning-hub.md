@@ -5,9 +5,9 @@
 - 当前阶段：第 1-2 周，MiniGPT from scratch
 - 当前项目：`projects/mini-gpt-from-scratch`
 - 今天任务：
-  - 复习 `train.py` 的 validation loss 评估流程
-  - 解释 `best checkpoint / final checkpoint / early stopping`
-  - 用自己的话总结为什么训练不能只看 train loss
+  - 复习 `train.py` 的训练控制参数
+  - 解释 `max_steps / eval_interval / patience / learning_rate`
+  - 用自己的话总结这些参数为什么不改变模型结构
 
 ## 学习路线
 
@@ -44,7 +44,7 @@
 ### 4. Transformer / Mini GPT
 
 - 目标：从零理解 decoder-only Transformer
-- 学习记录：[[2026-05-06]]、[[2026-05-07]]、[[2026-05-08]]、[[2026-05-09]]
+- 学习记录：[[2026-05-06]]、[[2026-05-07]]、[[2026-05-08]]、[[2026-05-09]]、[[2026-05-10]]
 - 关键问题：
   - self-attention 在算什么？
   - causal mask 为什么必要？
@@ -56,6 +56,8 @@
   - `model.eval()` 和 `torch.no_grad()` 有什么区别？
   - best checkpoint 和 final checkpoint 有什么区别？
   - early stopping 的 patience 是什么？
+  - `max_steps`、`eval_interval`、`patience`、`learning_rate` 分别控制什么？
+  - 为什么 `eval_interval` 不改变参数更新频率？
 
 ### 5. LoRA / QLoRA
 
@@ -163,6 +165,18 @@
 - 正确理解：best checkpoint 是历史最低 validation loss 对应的模型，early stopping 是连续多次没有改善后的停止动作。
 - 记忆句：刹车点不是最高分点。
 
+### 误区：`eval_interval` 越小，参数更新越频繁
+
+- 错在哪里：参数更新由训练循环里的 `loss.backward()` 和 `optimizer.step()` 决定，仍然每个训练 step 执行。
+- 正确理解：`eval_interval` 只控制多久额外评估一次 train/val loss。
+- 记忆句：评卷更勤，不代表写卷更多。
+
+### 误区：命令行参数写了就一定生效
+
+- 错在哪里：加了 argparse 参数，但如果后面的训练逻辑仍然使用写死值，参数不会真正影响实验。
+- 正确理解：命令行参数要接入实际逻辑，例如 `step % args.eval_interval`。
+- 记忆句：旋钮接上线，转动才有用。
+
 ## 面试问答库
 
 ### Q: PyTorch 的一个基础训练循环包括哪些步骤？
@@ -201,6 +215,18 @@ A: final checkpoint 是训练结束时保存的最后一步模型；best checkpo
 
 A: patience 表示允许 validation loss 连续多少次评估没有改善。如果连续没有改善的次数达到 patience，就提前停止训练，避免继续过拟合或浪费计算。
 
+### Q: `eval_interval` 会不会改变模型每一步的参数更新？
+
+A: 不会。`eval_interval` 只控制隔多少 step 运行一次评估逻辑，比如计算 train loss、validation loss、保存 best checkpoint、检查 early stopping。参数更新仍然发生在每个训练 step。
+
+### Q: `max_steps` 和 early stopping 谁决定训练结束？
+
+A: 两者都可能决定训练结束。`max_steps` 是最多训练多少步的硬上限；early stopping 是当 validation loss 连续多次不改善时提前停止。哪个条件先满足，训练就在哪里结束。
+
+### Q: learning rate 太大可能会带来什么问题？
+
+A: learning rate 太大时，每次参数更新步子过大，可能导致训练不稳定。在当前 toy corpus 实验里，它让 train loss 很快降到很低，但 validation loss 大幅升高，说明模型更快过拟合训练集，泛化更差。
+
 ## 本周最小交付物
 
 - 能解释 `tensor_autograd.py`
@@ -214,6 +240,7 @@ A: patience 表示允许 validation loss 连续多少次评估没有改善。如
 - 能比较 `temperature / top-k / top-p / seed / greedy`
 - 能解释推理时为什么使用 `model.eval()` 和 `torch.no_grad()`
 - 能解释 best checkpoint 和 early stopping 如何用 validation loss 控制训练
+- 能用命令行参数控制 MiniGPT 的 `max_steps / eval_interval / patience / learning_rate`
 
 ## 链接
 
@@ -223,6 +250,7 @@ A: patience 表示允许 validation loss 连续多少次评估没有改善。如
 - [[2026-05-07]]
 - [[2026-05-08]]
 - [[2026-05-09]]
+- [[2026-05-10]]
 - [[experiments/tiny-lm-block-dim|Tiny LM block/dim 实验]]
 - [[lora-qlora]]
 - [[transformer-from-scratch]]
