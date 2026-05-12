@@ -80,6 +80,70 @@ class LoRALinear(nn.Module):
 - 最终输出是 `base_out + lora_out`。
 - 常见初始化是 `A` 随机初始化、`B` 初始化为 0，这样一开始 `lora_out=0`。
 
+## 接进 MiniGPT 的 qkv
+
+MiniGPT 的 attention 里有：
+
+```python
+self.qkv = nn.Linear(dim, 3 * dim)
+```
+
+当 `dim=128` 时：
+
+```text
+qkv = Linear(128, 384, bias=True)
+```
+
+这里的 `384` 是 `3 * 128`，对应 query、key、value 三组向量。
+
+Day11 的最小实验只替换：
+
+```text
+blocks[*].attn.qkv
+```
+
+不替换：
+
+```text
+attn.proj
+ffn
+head
+```
+
+这样能把学习重点固定在 qkv 的 LoRA 参数流上。
+
+参数量：
+
+```text
+单个 qkv full fine-tuning:
+384 * 128 + 384 = 49536
+
+单个 qkv LoRA, r=8:
+A: 8 * 128 = 1024
+B: 384 * 8 = 3072
+trainable = 4096
+
+4 个 TransformerBlock:
+full qkv = 49536 * 4 = 198144
+LoRA trainable = 4096 * 4 = 16384
+```
+
+运行结果：
+
+```text
+base total parameters:      808242
+base trainable parameters:  808242
+LoRA total parameters:      824626
+LoRA trainable parameters:  16384
+output shape:               (2, 8, 50)
+```
+
+关键理解：
+
+- LoRA 接进 qkv 后，qkv 的外部输入输出 shape 不变。
+- 原始 qkv 权重仍然参与 forward，但被冻结。
+- 只有 LoRA 的 `A/B` 会被 optimizer 更新。
+
 ## 为什么重要
 
 - 可训练参数量大幅下降。
@@ -103,6 +167,7 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - LoRA 通常会让 total parameters 略微增加，因为它额外加了 adapter。
 - LoRA 真正大幅减少的是 trainable parameters、梯度和优化器状态。
 - 计算 full fine-tuning 参数量时，如果 `bias=True`，不要漏掉 bias。
+- LoRA 内部用了 rank 瓶颈，不代表外部输出 shape 会变。
 
 ## 面试问题
 
@@ -111,3 +176,4 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - 量化为什么可能让训练不稳定？
 - gradient accumulation 和 effective batch size 是什么关系？
 - LoRA 的 `total parameters` 和 `trainable parameters` 有什么区别？
+- 为什么 MiniGPT 的 `qkv` 适合作为第一个 LoRA 替换目标？
