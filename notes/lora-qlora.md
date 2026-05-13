@@ -144,6 +144,56 @@ output shape:               (2, 8, 50)
 - 原始 qkv 权重仍然参与 forward，但被冻结。
 - 只有 LoRA 的 `A/B` 会被 optimizer 更新。
 
+## MiniGPT LoRA 训练链路
+
+Day12 的目标不是训练出更好的生成效果，而是确认 LoRA adapter 已经进入真实训练链路：
+
+```python
+trainable_params = [
+    p
+    for p in model.parameters()
+    if p.requires_grad
+]
+optimizer = torch.optim.AdamW(trainable_params, lr=3e-4)
+```
+
+这表示：
+
+```text
+frozen base 参数：参与 forward，但不累积梯度、不被 optimizer 更新
+LoRA A/B 参数：参与 forward，也被 optimizer 更新
+```
+
+如果 `logits` 和 `targets` 的 shape 是：
+
+```text
+logits:  (batch, seq_len, vocab_size)
+targets: (batch, seq_len)
+```
+
+那么计算 next-token loss 时要展平为：
+
+```python
+loss = F.cross_entropy(
+    logits.view(-1, logits.size(-1)),
+    targets.view(-1),
+)
+```
+
+例如：
+
+```text
+logits:  (2, 8, 50) -> (16, 50)
+targets: (2, 8)     -> (16,)
+```
+
+Day12 的测试重点：
+
+- optimizer 参数量等于 `requires_grad=True` 的参数量。
+- backward 后只有 LoRA 参数有 `.grad`。
+- 训练一步后，base qkv 权重不变。
+- 训练一步后，`lora_B.weight` 改变。
+
 ## 为什么重要
 
 - 可训练参数量大幅下降。
@@ -168,6 +218,8 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - LoRA 真正大幅减少的是 trainable parameters、梯度和优化器状态。
 - 计算 full fine-tuning 参数量时，如果 `bias=True`，不要漏掉 bias。
 - LoRA 内部用了 rank 瓶颈，不代表外部输出 shape 会变。
+- frozen 参数仍然可以参与 forward，冻结不是从计算路径里删除。
+- `targets.view(-1)` 是一维 shape，例如 `(16,)`，不是 `(16, 1)`。
 
 ## 面试问题
 
@@ -177,3 +229,5 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - gradient accumulation 和 effective batch size 是什么关系？
 - LoRA 的 `total parameters` 和 `trainable parameters` 有什么区别？
 - 为什么 MiniGPT 的 `qkv` 适合作为第一个 LoRA 替换目标？
+- LoRA 训练时 optimizer 里应该放哪些参数？
+- 为什么第一步训练更适合检查 `lora_B.weight` 是否变化？
