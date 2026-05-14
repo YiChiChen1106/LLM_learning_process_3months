@@ -5,9 +5,9 @@
 - 当前阶段：第 1-2 周到 LoRA 过渡
 - 当前项目：`projects/mini-gpt-from-scratch`
 - 今天任务：
-  - 跑通 MiniGPT qkv LoRA 的 smoke training
-  - 验证 optimizer 只更新 LoRA A/B
-  - 用测试确认 base qkv 不变、LoRA adapter 改变
+  - 保存 MiniGPT qkv LoRA adapter
+  - 加载 LoRA adapter 到同结构模型
+  - 验证同一个 base + adapter 输出一致
 
 ## 学习路线
 
@@ -64,7 +64,7 @@
 ### 5. LoRA / QLoRA
 
 - 目标：理解参数高效微调
-- 学习记录：[[2026-05-11]]、[[2026-05-12]]、[[2026-05-13]]
+- 学习记录：[[2026-05-11]]、[[2026-05-12]]、[[2026-05-13]]、[[2026-05-14]]
 - Toy 项目：`projects/toy-lora-from-scratch`
 - MiniGPT 项目：`projects/mini-gpt-from-scratch`
 - 关键问题：
@@ -77,6 +77,9 @@
   - LoRA 训练时 optimizer 里应该放哪些参数？
   - frozen base 参数为什么仍然参与 forward？
   - 如何用测试证明 base qkv 不变、LoRA adapter 改变？
+  - `state_dict()` 会保存哪些东西？
+  - LoRA adapter checkpoint 为什么只保存 `lora_A/lora_B`？
+  - `strict=False` 加载 adapter 时解决了什么？
   - QLoRA 的量化省了什么显存？
 
 ### 6. 推理系统

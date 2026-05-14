@@ -194,6 +194,57 @@ Day12 的测试重点：
 - 训练一步后，base qkv 权重不变。
 - 训练一步后，`lora_B.weight` 改变。
 
+## MiniGPT LoRA Adapter 保存与加载
+
+`model.state_dict()` 会返回模型里的所有参数和 buffer，不只返回可训练参数。接入 LoRA 后，qkv 里会同时出现 base linear 和 LoRA adapter：
+
+```text
+blocks.0.attn.qkv.linear.weight
+blocks.0.attn.qkv.linear.bias
+blocks.0.attn.qkv.lora_A.weight
+blocks.0.attn.qkv.lora_B.weight
+```
+
+如果只想保存 adapter，就按 key 名筛选：
+
+```python
+lora_state = {
+    name: tensor
+    for name, tensor in model.state_dict().items()
+    if "lora_" in name
+}
+```
+
+这和训练时的筛选不同：
+
+```text
+训练 optimizer 参数：看 parameter.requires_grad
+保存 adapter checkpoint：看 state_dict key name
+```
+
+保存：
+
+```python
+torch.save(lora_state, path)
+```
+
+加载：
+
+```python
+model = MiniGPT(...)
+model = replace_qkv_with_lora(model, r=8, alpha=16)
+model.load_state_dict(lora_state, strict=False)
+```
+
+必须先接入 LoRA，因为普通 MiniGPT 没有 `lora_A/lora_B` 这些参数位置。`strict=False` 允许 checkpoint 只包含部分参数，但不会自动创建 LoRA 层，也不会自动忽略 shape 不匹配。
+
+Day13 的测试重点：
+
+- adapter checkpoint 只包含 `lora_A/lora_B`。
+- adapter checkpoint 参数量是 `16384`。
+- 保存后加载到同结构模型，LoRA 权重一致。
+- 同一个 base model 加载同一个 adapter 后，logits 一致。
+
 ## 为什么重要
 
 - 可训练参数量大幅下降。
@@ -220,6 +271,8 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - LoRA 内部用了 rank 瓶颈，不代表外部输出 shape 会变。
 - frozen 参数仍然可以参与 forward，冻结不是从计算路径里删除。
 - `targets.view(-1)` 是一维 shape，例如 `(16,)`，不是 `(16, 1)`。
+- `state_dict()` 不只包含 trainable 参数，也包含 frozen 参数和 buffer。
+- `strict=False` 允许只加载部分 key，但不会自动创建缺失的 LoRA 层。
 
 ## 面试问题
 
@@ -231,3 +284,6 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - 为什么 MiniGPT 的 `qkv` 适合作为第一个 LoRA 替换目标？
 - LoRA 训练时 optimizer 里应该放哪些参数？
 - 为什么第一步训练更适合检查 `lora_B.weight` 是否变化？
+- LoRA adapter checkpoint 里应该保存哪些权重？
+- 为什么加载 LoRA adapter 前要先把目标 Linear 替换成 LoRALinear？
+- `state_dict()`、`requires_grad` 和 optimizer state 分别负责什么？
