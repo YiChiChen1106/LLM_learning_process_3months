@@ -245,6 +245,42 @@ Day13 的测试重点：
 - 保存后加载到同结构模型，LoRA 权重一致。
 - 同一个 base model 加载同一个 adapter 后，logits 一致。
 
+## MiniGPT LoRA Adapter 采样推理
+
+LoRA adapter 不能单独用于 generate，因为它只保存增量矩阵 `lora_A/lora_B`，不包含完整的 embedding、Transformer block、LayerNorm 和 head。
+
+采样时需要：
+
+```text
+base checkpoint + LoRA adapter checkpoint
+```
+
+正确加载顺序：
+
+```python
+checkpoint = torch.load(base_checkpoint)
+model = MiniGPT(**checkpoint["config"])
+model.load_state_dict(checkpoint["model"])
+model = replace_qkv_with_lora(model, r=8, alpha=16)
+load_lora_adapter(model, adapter_path)
+model.eval()
+```
+
+`sample.py` 支持可选 adapter：
+
+```powershell
+python sample.py --checkpoint runs/mini_gpt_best.pt --lora-adapter runs/adapter.pt --lora-rank 8 --lora-alpha 16
+```
+
+如果不传 `--lora-adapter`，仍然按普通 MiniGPT full checkpoint 采样。
+如果传 adapter，`sample.py` 会先加载 base checkpoint，再接入 LoRA 结构，最后加载 adapter 权重。
+
+需要注意：
+
+- adapter 训练时的 `r` 必须和推理时的 `--lora-rank` 一致。
+- `strict=False` 允许只加载部分 key，但不能解决 shape 不匹配。
+- 同一个 base checkpoint + 同一个 adapter 应该得到一致 logits。
+
 ## 为什么重要
 
 - 可训练参数量大幅下降。
@@ -273,6 +309,8 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - `targets.view(-1)` 是一维 shape，例如 `(16,)`，不是 `(16, 1)`。
 - `state_dict()` 不只包含 trainable 参数，也包含 frozen 参数和 buffer。
 - `strict=False` 允许只加载部分 key，但不会自动创建缺失的 LoRA 层。
+- LoRA adapter 不能单独推理，必须配同结构 base model。
+- adapter 的 rank 和加载时创建的 LoRA rank 必须一致。
 
 ## 面试问题
 
@@ -287,3 +325,6 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - LoRA adapter checkpoint 里应该保存哪些权重？
 - 为什么加载 LoRA adapter 前要先把目标 Linear 替换成 LoRALinear？
 - `state_dict()`、`requires_grad` 和 optimizer state 分别负责什么？
+- LoRA adapter 为什么不能单独 generate？
+- sampling 时加载 base checkpoint 和 adapter checkpoint 的顺序是什么？
+- 如果 adapter 的 rank 和推理时的 rank 不一致，会发生什么？

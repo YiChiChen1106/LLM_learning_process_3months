@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 import torch
 
+from lora_checkpoint import load_lora_adapter
+from lora_minigpt import replace_qkv_with_lora
 from model import MiniGPT
 
 
@@ -24,9 +27,42 @@ def apply_top_p_filtering(logits: torch.Tensor, top_p: float) -> torch.Tensor:
     return logits.masked_fill(indices_to_remove, float("-inf"))
 
 
+def load_torch_checkpoint(path: str | Path, map_location: str) -> dict:
+    try:
+        return torch.load(path, map_location=map_location, weights_only=True)
+    except TypeError:
+        return torch.load(path, map_location=map_location)
+
+
+def load_sampling_model(
+    checkpoint_path: str | Path,
+    device: str,
+    lora_adapter: str | Path | None = None,
+    lora_rank: int = 8,
+    lora_alpha: float = 16,
+) -> tuple[MiniGPT, dict[str, int], dict[int, str]]:
+    checkpoint = load_torch_checkpoint(checkpoint_path, map_location="cpu")
+    stoi = checkpoint["stoi"]
+    itos = checkpoint["itos"]
+    config = checkpoint["config"]
+
+    model = MiniGPT(**config)
+    model.load_state_dict(checkpoint["model"])
+    if lora_adapter is not None:
+        model = replace_qkv_with_lora(model, r=lora_rank, alpha=lora_alpha)
+        load_lora_adapter(model, lora_adapter)
+
+    model.to(device)
+    model.eval()
+    return model, stoi, itos
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", required=True)
+    parser.add_argument("--lora-adapter", default=None)
+    parser.add_argument("--lora-rank", type=int, default=8)
+    parser.add_argument("--lora-alpha", type=float, default=16)
     parser.add_argument("--prompt", default="large")
     parser.add_argument("--tokens", type=int, default=120)
     parser.add_argument("--temperature", type=float, default=1.0)
@@ -39,13 +75,13 @@ def main() -> None:
         torch.manual_seed(args.seed)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    checkpoint = torch.load(args.checkpoint, map_location=device)
-    stoi = checkpoint["stoi"]
-    itos = checkpoint["itos"]
-    config = checkpoint["config"]
-    model = MiniGPT(**config).to(device)
-    model.load_state_dict(checkpoint["model"])
-    model.eval()
+    model, stoi, itos = load_sampling_model(
+        checkpoint_path=args.checkpoint,
+        device=device,
+        lora_adapter=args.lora_adapter,
+        lora_rank=args.lora_rank,
+        lora_alpha=args.lora_alpha,
+    )
 
     ids = [stoi.get(ch, 0) for ch in args.prompt]
     context = torch.tensor([ids], dtype=torch.long, device=device)

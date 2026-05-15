@@ -5,9 +5,9 @@
 - 当前阶段：第 1-2 周到 LoRA 过渡
 - 当前项目：`projects/mini-gpt-from-scratch`
 - 今天任务：
-  - 保存 MiniGPT qkv LoRA adapter
-  - 加载 LoRA adapter 到同结构模型
-  - 验证同一个 base + adapter 输出一致
+  - 把 LoRA adapter 接进 MiniGPT sampling
+  - 验证 base checkpoint + adapter checkpoint 的加载顺序
+  - 确认不传 adapter 时普通采样路径不变
 
 ## 学习路线
 
@@ -64,7 +64,7 @@
 ### 5. LoRA / QLoRA
 
 - 目标：理解参数高效微调
-- 学习记录：[[2026-05-11]]、[[2026-05-12]]、[[2026-05-13]]、[[2026-05-14]]
+- 学习记录：[[2026-05-11]]、[[2026-05-12]]、[[2026-05-13]]、[[2026-05-14]]、[[2026-05-15]]
 - Toy 项目：`projects/toy-lora-from-scratch`
 - MiniGPT 项目：`projects/mini-gpt-from-scratch`
 - 关键问题：
@@ -80,6 +80,9 @@
   - `state_dict()` 会保存哪些东西？
   - LoRA adapter checkpoint 为什么只保存 `lora_A/lora_B`？
   - `strict=False` 加载 adapter 时解决了什么？
+  - LoRA adapter 为什么不能单独 generate？
+  - sampling 时 base checkpoint 和 adapter checkpoint 的加载顺序是什么？
+  - adapter rank 和推理时 LoRA rank 为什么必须一致？
   - QLoRA 的量化省了什么显存？
 
 ### 6. 推理系统
