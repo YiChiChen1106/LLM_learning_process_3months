@@ -296,6 +296,8 @@ A: LoRA 内部通过 `A/B` 做低秩更新，但对外仍然保持原始 qkv 的
 - 能解释普通 `nn.Linear` 和 LoRA 的参数量差异
 - 能手写最小 `LoRALinear`
 - 能把 LoRA 接进 MiniGPT 的 `attn.qkv` 并解释参数量变化
+- 能解释 LoRA adapter sampling：`base checkpoint + adapter checkpoint`
+- 能把 LoRA adapter merge 回普通 `nn.Linear` 并保存 merged checkpoint
 
 ## 链接
 
@@ -308,6 +310,7 @@ A: LoRA 内部通过 `A/B` 做低秩更新，但对外仍然保持原始 qkv 的
 - [[2026-05-10]]
 - [[2026-05-11]]
 - [[2026-05-12]]
+- [[2026-05-23]]
 - [[experiments/tiny-lm-block-dim|Tiny LM block/dim 实验]]
 - [[lora-qlora]]
 - [[transformer-from-scratch]]

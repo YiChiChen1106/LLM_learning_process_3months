@@ -5,8 +5,8 @@ from pathlib import Path
 
 import torch
 
-from lora_checkpoint import load_lora_adapter
-from lora_minigpt import replace_qkv_with_lora
+from lora_checkpoint import load_lora_adapter, save_merged_checkpoint
+from lora_minigpt import merge_qkv_lora, replace_qkv_with_lora
 from model import MiniGPT
 
 
@@ -40,17 +40,27 @@ def load_sampling_model(
     lora_adapter: str | Path | None = None,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    merge_lora: bool = False,
+    save_merged_checkpoint_path: str | Path | None = None,
 ) -> tuple[MiniGPT, dict[str, int], dict[int, str]]:
     checkpoint = load_torch_checkpoint(checkpoint_path, map_location="cpu")
     stoi = checkpoint["stoi"]
     itos = checkpoint["itos"]
     config = checkpoint["config"]
 
+    if (merge_lora or save_merged_checkpoint_path is not None) and lora_adapter is None:
+        raise ValueError("merge_lora requires a lora_adapter")
+
     model = MiniGPT(**config)
     model.load_state_dict(checkpoint["model"])
     if lora_adapter is not None:
         model = replace_qkv_with_lora(model, r=lora_rank, alpha=lora_alpha)
         load_lora_adapter(model, lora_adapter)
+        if merge_lora or save_merged_checkpoint_path is not None:
+            model = merge_qkv_lora(model)
+
+    if save_merged_checkpoint_path is not None:
+        save_merged_checkpoint(model, checkpoint, save_merged_checkpoint_path)
 
     model.to(device)
     model.eval()
@@ -63,6 +73,8 @@ def main() -> None:
     parser.add_argument("--lora-adapter", default=None)
     parser.add_argument("--lora-rank", type=int, default=8)
     parser.add_argument("--lora-alpha", type=float, default=16)
+    parser.add_argument("--merge-lora", action="store_true")
+    parser.add_argument("--save-merged-checkpoint", default=None)
     parser.add_argument("--prompt", default="large")
     parser.add_argument("--tokens", type=int, default=120)
     parser.add_argument("--temperature", type=float, default=1.0)
@@ -71,6 +83,10 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--greedy", action="store_true")
     args = parser.parse_args()
+    if args.merge_lora and args.lora_adapter is None:
+        parser.error("--merge-lora requires --lora-adapter")
+    if args.save_merged_checkpoint is not None and args.lora_adapter is None:
+        parser.error("--save-merged-checkpoint requires --lora-adapter")
     if args.seed is not None:
         torch.manual_seed(args.seed)
 
@@ -81,6 +97,8 @@ def main() -> None:
         lora_adapter=args.lora_adapter,
         lora_rank=args.lora_rank,
         lora_alpha=args.lora_alpha,
+        merge_lora=args.merge_lora,
+        save_merged_checkpoint_path=args.save_merged_checkpoint,
     )
 
     ids = [stoi.get(ch, 0) for ch in args.prompt]

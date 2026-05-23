@@ -34,3 +34,23 @@ def load_lora_adapter(model: nn.Module, path: str | Path) -> nn.Module:
         lora_state = torch.load(path, map_location="cpu")
     model.load_state_dict(lora_state, strict=False)
     return model
+
+
+def save_merged_checkpoint(
+    model: nn.Module,
+    source_checkpoint: Mapping[str, object],
+    path: str | Path,
+) -> dict[str, object]:
+    merged_checkpoint = {
+        "model": {
+            name: tensor.detach().cpu().clone()
+            for name, tensor in model.state_dict().items()
+        },
+        "config": source_checkpoint["config"],
+        "stoi": source_checkpoint["stoi"],
+        "itos": source_checkpoint["itos"],
+    }
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(merged_checkpoint, path)
+    return merged_checkpoint

@@ -281,6 +281,62 @@ python sample.py --checkpoint runs/mini_gpt_best.pt --lora-adapter runs/adapter.
 - `strict=False` 允许只加载部分 key，但不能解决 shape 不匹配。
 - 同一个 base checkpoint + 同一个 adapter 应该得到一致 logits。
 
+## MiniGPT LoRA Merge 推理
+
+LoRA merge 是把 adapter 产生的增量权重直接合进 base weight。对 PyTorch 的 `nn.Linear` 来说，`weight` shape 是 `(out_features, in_features)`。
+
+以 `qkv = nn.Linear(128, 384)`、`r=8` 为例：
+
+```text
+base.weight:        (384, 128)
+lora_A.weight:      (8, 128)
+lora_B.weight:      (384, 8)
+lora_B @ lora_A:    (384, 128)
+```
+
+所以 merge 公式是：
+
+```python
+delta_weight = lora_B.weight @ lora_A.weight
+merged_weight = base.weight + scaling * delta_weight
+```
+
+不是 `lora_A.weight @ lora_B.weight`，因为 shape 对不上，而且 forward 顺序是先过 A、再过 B。
+
+merge 前：
+
+```text
+block.attn.qkv = LoRALinear(...)
+state_dict 里有 lora_A/lora_B
+```
+
+merge 后：
+
+```text
+block.attn.qkv = nn.Linear(...)
+state_dict 里不再有 lora_A/lora_B
+```
+
+merge 前后的输出理论上等价，测试里用 `torch.allclose` 检查即可。
+
+`sample.py` 支持内存 merge：
+
+```powershell
+python sample.py --checkpoint runs/mini_gpt_best.pt --lora-adapter runs/adapter.pt --merge-lora
+```
+
+也可以保存 merged checkpoint：
+
+```powershell
+python sample.py --checkpoint runs/mini_gpt_best.pt --lora-adapter runs/adapter.pt --save-merged-checkpoint runs/merged.pt
+```
+
+保存出的 `merged.pt` 是完整普通 MiniGPT checkpoint，之后可以直接采样：
+
+```powershell
+python sample.py --checkpoint runs/merged.pt --prompt large --greedy
+```
+
 ## 为什么重要
 
 - 可训练参数量大幅下降。
@@ -311,6 +367,8 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - `strict=False` 允许只加载部分 key，但不会自动创建缺失的 LoRA 层。
 - LoRA adapter 不能单独推理，必须配同结构 base model。
 - adapter 的 rank 和加载时创建的 LoRA rank 必须一致。
+- LoRA merge 后参数量会回到普通模型，因为 `lora_A/lora_B` 已经被合进 base weight。
+- merged checkpoint 是完整普通 checkpoint，不是 adapter checkpoint。
 
 ## 面试问题
 
@@ -328,3 +386,6 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - LoRA adapter 为什么不能单独 generate？
 - sampling 时加载 base checkpoint 和 adapter checkpoint 的顺序是什么？
 - 如果 adapter 的 rank 和推理时的 rank 不一致，会发生什么？
+- LoRA merge 的公式是什么？
+- merge 后为什么 `state_dict()` 里不再有 `lora_A/lora_B`？
+- merged checkpoint 和 adapter checkpoint 有什么区别？

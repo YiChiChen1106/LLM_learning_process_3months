@@ -56,6 +56,32 @@ def replace_qkv_with_lora(model: nn.Module, r: int = 8, alpha: float = 16) -> nn
     return model
 
 
+def merge_lora_linear(layer: LoRALinear) -> nn.Linear:
+    base = layer.linear
+    merged = nn.Linear(
+        base.in_features,
+        base.out_features,
+        bias=base.bias is not None,
+    ).to(device=base.weight.device, dtype=base.weight.dtype)
+
+    delta_weight = layer.lora_B.weight @ layer.lora_A.weight
+    with torch.no_grad():
+        merged.weight.copy_(base.weight + layer.scaling * delta_weight)
+        merged.weight.requires_grad = base.weight.requires_grad
+        if base.bias is not None:
+            merged.bias.copy_(base.bias)
+            merged.bias.requires_grad = base.bias.requires_grad
+
+    return merged
+
+
+def merge_qkv_lora(model: nn.Module) -> nn.Module:
+    for block in model.blocks:
+        if isinstance(block.attn.qkv, LoRALinear):
+            block.attn.qkv = merge_lora_linear(block.attn.qkv)
+    return model
+
+
 def main() -> None:
     from model import MiniGPT
 
