@@ -370,6 +370,64 @@ QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 L
 - LoRA merge 后参数量会回到普通模型，因为 `lora_A/lora_B` 已经被合进 base weight。
 - merged checkpoint 是完整普通 checkpoint，不是 adapter checkpoint。
 
+## MiniGPT LoRA 正式训练
+
+Day16 开始从 smoke training 进入正式 adapter 训练。核心目标不是再训练整个 MiniGPT，而是在已经训练好的 base checkpoint 上，只训练 qkv 的 LoRA adapter。
+
+正确构建顺序：
+
+```python
+checkpoint = torch.load(base_checkpoint, map_location="cpu")
+model = MiniGPT(**checkpoint["config"])
+model.load_state_dict(checkpoint["model"])
+model = replace_qkv_with_lora(model, r=8, alpha=16)
+```
+
+这里必须先加载 base，再替换 LoRA。原因是 base checkpoint 里的 key 是：
+
+```text
+blocks.0.attn.qkv.weight
+blocks.0.attn.qkv.bias
+```
+
+替换 LoRA 后模型里的 key 会变成：
+
+```text
+blocks.0.attn.qkv.linear.weight
+blocks.0.attn.qkv.linear.bias
+blocks.0.attn.qkv.lora_A.weight
+blocks.0.attn.qkv.lora_B.weight
+```
+
+训练时 optimizer 只拿可训练参数：
+
+```python
+optimizer = torch.optim.AdamW(
+    [p for p in model.parameters() if p.requires_grad],
+    lr=3e-4,
+)
+```
+
+对于当前 MiniGPT 配置，`dim=128, r=8, num_layers=4`：
+
+```text
+single qkv LoRA = 8 * 128 + 384 * 8 = 4096
+4 blocks = 4096 * 4 = 16384 trainable parameters
+```
+
+保存 best adapter 时只保存 `lora_` 参数，不保存完整模型：
+
+```python
+lora_state = {
+    name: tensor
+    for name, tensor in model.state_dict().items()
+    if "lora_" in name
+}
+torch.save(lora_state, adapter_path)
+```
+
+这个 adapter 后续必须搭配同一个 base checkpoint 使用，或者先 merge 成普通 checkpoint 再单独采样。
+
 ## 面试问题
 
 - LoRA 为什么省显存？

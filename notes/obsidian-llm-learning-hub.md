@@ -5,9 +5,9 @@
 - 当前阶段：第 1-2 周到 LoRA 过渡
 - 当前项目：`projects/mini-gpt-from-scratch`
 - 今天任务：
-  - 把 LoRA adapter 接进 MiniGPT sampling
-  - 验证 base checkpoint + adapter checkpoint 的加载顺序
-  - 确认不传 adapter 时普通采样路径不变
+  - 写正式版 `train_lora.py`
+  - 从 base checkpoint 继续训练 LoRA adapter
+  - 用 validation loss 保存 best adapter
 
 ## 学习路线
 
@@ -83,6 +83,7 @@
   - LoRA adapter 为什么不能单独 generate？
   - sampling 时 base checkpoint 和 adapter checkpoint 的加载顺序是什么？
   - adapter rank 和推理时 LoRA rank 为什么必须一致？
+  - 正式训练 LoRA adapter 时，为什么 best checkpoint 只保存 `lora_` 参数？
   - QLoRA 的量化省了什么显存？
 
 ### 6. 推理系统
@@ -298,6 +299,7 @@ A: LoRA 内部通过 `A/B` 做低秩更新，但对外仍然保持原始 qkv 的
 - 能把 LoRA 接进 MiniGPT 的 `attn.qkv` 并解释参数量变化
 - 能解释 LoRA adapter sampling：`base checkpoint + adapter checkpoint`
 - 能把 LoRA adapter merge 回普通 `nn.Linear` 并保存 merged checkpoint
+- 能从 base checkpoint 正式训练 qkv LoRA adapter，并保存 best adapter
 
 ## 链接
 
@@ -311,6 +313,7 @@ A: LoRA 内部通过 `A/B` 做低秩更新，但对外仍然保持原始 qkv 的
 - [[2026-05-11]]
 - [[2026-05-12]]
 - [[2026-05-23]]
+- [[2026-05-25]]
 - [[experiments/tiny-lm-block-dim|Tiny LM block/dim 实验]]
 - [[lora-qlora]]
 - [[transformer-from-scratch]]
