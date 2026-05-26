@@ -428,6 +428,36 @@ torch.save(lora_state, adapter_path)
 
 这个 adapter 后续必须搭配同一个 base checkpoint 使用，或者先 merge 成普通 checkpoint 再单独采样。
 
+## LoRA 推理路径对比
+
+Day17 验证了三条推理路径：
+
+```text
+base checkpoint
+base checkpoint + LoRA adapter
+merged checkpoint
+```
+
+base checkpoint 是完整 MiniGPT，可以直接 sample。LoRA adapter 只保存 `lora_A/lora_B`，必须搭配同一个 base checkpoint 使用。merged checkpoint 已经把 LoRA 增量合进普通 Linear，因此也可以直接 sample。
+
+merge 的核心公式：
+
+```python
+delta_weight = lora_B.weight @ lora_A.weight
+merged_weight = base_weight + scaling * delta_weight
+```
+
+对于 qkv：
+
+```text
+lora_B.weight:   (384, 8)
+lora_A.weight:   (8, 128)
+delta_weight:    (384, 128)
+base.weight:     (384, 128)
+```
+
+验证 merge 是否正确时，优先比较同一个 input 下的 logits，而不是只看生成文本。文本会受到 sampling 策略影响；logits 是模型 forward 的直接输出。
+
 ## 面试问题
 
 - LoRA 为什么省显存？
@@ -447,3 +477,4 @@ torch.save(lora_state, adapter_path)
 - LoRA merge 的公式是什么？
 - merge 后为什么 `state_dict()` 里不再有 `lora_A/lora_B`？
 - merged checkpoint 和 adapter checkpoint 有什么区别？
+- 为什么验证 merged checkpoint 等价时更适合比较 logits，而不是比较生成文本？
