@@ -5,9 +5,9 @@
 - 当前阶段：第 1-2 周到 LoRA 过渡
 - 当前项目：`projects/mini-gpt-from-scratch`
 - 今天任务：
-  - 对比 base、base + adapter、merged checkpoint 三条推理路径
-  - 用 logits 验证 `base + adapter` 和 merged checkpoint 等价
-  - 准备明天结束 LoRA，进入 QLoRA / PEFT
+  - 整理 Day18 LoRA 总复盘
+  - 明确 full fine-tuning / LoRA adapter / merged checkpoint 的区别
+  - 准备进入 QLoRA / PEFT
 
 ## 学习路线
 
@@ -64,7 +64,7 @@
 ### 5. LoRA / QLoRA
 
 - 目标：理解参数高效微调
-- 学习记录：[[2026-05-11]]、[[2026-05-12]]、[[2026-05-13]]、[[2026-05-14]]、[[2026-05-15]]、[[2026-05-23]]、[[2026-05-25]]、[[2026-05-26]]
+- 学习记录：[[2026-05-11]]、[[2026-05-12]]、[[2026-05-13]]、[[2026-05-14]]、[[2026-05-15]]、[[2026-05-23]]、[[2026-05-25]]、[[2026-05-26]]、[[2026-05-27]]
 - Toy 项目：`projects/toy-lora-from-scratch`
 - MiniGPT 项目：`projects/mini-gpt-from-scratch`
 - 关键问题：
@@ -86,6 +86,7 @@
   - 正式训练 LoRA adapter 时，为什么 best checkpoint 只保存 `lora_` 参数？
   - merged checkpoint 为什么不再需要 `--lora-adapter`？
   - 为什么验证 merge 等价时要比较 logits？
+  - full fine-tuning、LoRA adapter、merged checkpoint 有什么区别？
   - QLoRA 的量化省了什么显存？
 
 ### 6. 推理系统
@@ -303,6 +304,7 @@ A: LoRA 内部通过 `A/B` 做低秩更新，但对外仍然保持原始 qkv 的
 - 能把 LoRA adapter merge 回普通 `nn.Linear` 并保存 merged checkpoint
 - 能从 base checkpoint 正式训练 qkv LoRA adapter，并保存 best adapter
 - 能用 logits 验证 `base + adapter` 和 merged checkpoint 等价
+- 能闭卷复盘 full fine-tuning / LoRA adapter / merged checkpoint 的区别
 
 ## 链接
 

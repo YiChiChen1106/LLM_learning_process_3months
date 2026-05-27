@@ -458,6 +458,29 @@ base.weight:     (384, 128)
 
 验证 merge 是否正确时，优先比较同一个 input 下的 logits，而不是只看生成文本。文本会受到 sampling 策略影响；logits 是模型 forward 的直接输出。
 
+## Day18 总复盘
+
+可以把 LoRA 的三种形态记成一张表：
+
+| 形态 | 训练什么 | 能否单独 sample | 保存什么 |
+| --- | --- | --- | --- |
+| full fine-tuning | 全部参数 | 可以 | 完整模型 |
+| LoRA adapter | `lora_A/lora_B` | 不可以 | 只有增量 |
+| merged checkpoint | 不再训练 | 可以 | 完整模型 |
+
+今天收住的关键结论：
+
+- LoRA 真正省的是 `trainable parameters`，不是 `total parameters`。
+- 冻结 base 不等于不参与 forward。
+- `base + adapter` 和 `merged checkpoint` 本质上是同一条计算路径的两种写法。
+- 验证 merge 等价时，优先看 logits，不只看生成文本。
+
+如果把 LoRA 记成一句话：
+
+```text
+冻结大模型，训练小补丁；merge 后补丁并回主模型，直接推理。
+```
+
 ## 面试问题
 
 - LoRA 为什么省显存？
