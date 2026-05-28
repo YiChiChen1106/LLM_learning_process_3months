@@ -348,6 +348,55 @@ python sample.py --checkpoint runs/merged.pt --prompt large --greedy
 
 QLoRA 会以量化形式加载基础模型，常见是 4-bit，同时只训练 LoRA adapter。这样可以显著降低显存需求，让更大的模型能在有限 GPU 上微调。
 
+更具体地说：
+
+- `base model` 是 frozen 的，所以适合量化存储。
+- `LoRA adapter` 参数很小，而且要训练，所以通常保留 fp16 / bf16。
+- 省下来的主要是 base weight 的存储显存，不是 adapter 的参数量。
+
+## Toy QuantizedLinear
+
+最小 toy 版本可以记成：
+
+```python
+q = round(x / scale)
+x_hat = q * scale
+```
+
+其中：
+
+- `scale = max_abs / 127`
+- `qweight` 用 `int8` 存
+- `qweight` 和 `scale` 适合放进 `buffer`
+- 需要训练的 LoRA 权重才放进 `Parameter`
+
+所以 toy QLoRA 的结构可以看成：
+
+```text
+quantized base linear (buffer)
++ LoRA adapter (Parameter)
+```
+
+最小 `QLoRALinear` 的 forward 是：
+
+```python
+base_out = quantized_base(x)
+lora_out = lora_B(lora_A(x)) * scaling
+out = base_out + lora_out
+```
+
+初始化时如果 `lora_B.weight = 0`，输出就等于 `quantized_base(x)`。训练一步后，`qweight` 不会变，`lora_B.weight` 会变。
+
+QLoRA merge 的 toy 公式是：
+
+```python
+base_weight_hat = qweight.float() * scale
+delta_weight = lora_B.weight @ lora_A.weight
+merged_weight = base_weight_hat + scaling * delta_weight
+```
+
+merge 后会变成普通 `nn.Linear`，`state_dict()` 里只剩 `weight/bias`，不再有 `qweight/scale/lora_A/lora_B`。
+
 ## 实验想法
 
 - 比较 `r=8`、`r=16`、`r=32`。
