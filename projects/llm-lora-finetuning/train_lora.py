@@ -74,7 +74,10 @@ def main() -> None:
     def tokenize(example: dict[str, str]) -> dict[str, list[int]]:
         text = format_example(example)
         encoded = tokenizer(text, truncation=True, max_length=cfg["max_length"], padding="max_length")
-        encoded["labels"] = encoded["input_ids"].copy()
+        encoded["labels"] = [
+            token_id if mask == 1 else -100
+            for token_id, mask in zip(encoded["input_ids"], encoded["attention_mask"])
+        ]
         return encoded
 
     tokenized = dataset.map(tokenize, remove_columns=dataset.column_names)
