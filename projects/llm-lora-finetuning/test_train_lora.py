@@ -39,7 +39,7 @@ class FakeDataset:
         return self.rows[index]
 
 
-def test_tokenize_masks_padding_labels(tmp_path, monkeypatch):
+def test_tokenize_masks_prompt_only_and_padding_labels(tmp_path, monkeypatch):
     captured = {}
 
     fake_torch = types.SimpleNamespace(
@@ -151,4 +151,121 @@ def test_tokenize_masks_padding_labels(tmp_path, monkeypatch):
     row = captured["train_dataset"][0]
     assert row["input_ids"] == [101, 200, 0, 0]
     assert row["attention_mask"] == [1, 1, 0, 0]
-    assert row["labels"] == [101, 200, -100, -100]
+    assert row["labels"] == [-100, -100, -100, -100]
+
+
+def test_tokenize_masks_prompt_and_padding_labels(tmp_path, monkeypatch):
+    captured = {}
+
+    fake_torch = types.SimpleNamespace(
+        bfloat16="bfloat16",
+        float32="float32",
+        cuda=types.SimpleNamespace(is_available=lambda: False),
+    )
+    fake_datasets = types.SimpleNamespace(Dataset=FakeDataset)
+    fake_peft = types.SimpleNamespace(
+        LoraConfig=lambda **kwargs: kwargs,
+        get_peft_model=lambda model, config: model,
+        prepare_model_for_kbit_training=lambda model: model,
+    )
+
+    class FakeTokenizer:
+        pad_token = None
+        eos_token = "<eos>"
+
+        def __call__(self, text, truncation, max_length, padding):
+            if padding is False:
+                return {"input_ids": [10, 11, 12]}
+            return {
+                "input_ids": [10, 11, 12, 20, 21, 0],
+                "attention_mask": [1, 1, 1, 1, 1, 0],
+            }
+
+    class FakeAutoTokenizer:
+        @classmethod
+        def from_pretrained(cls, *args, **kwargs):
+            return FakeTokenizer()
+
+    class FakeModel:
+        def print_trainable_parameters(self):
+            pass
+
+    class FakeAutoModel:
+        @classmethod
+        def from_pretrained(cls, *args, **kwargs):
+            return FakeModel()
+
+    class FakeTrainer:
+        def __init__(self, model, args, train_dataset):
+            captured["train_dataset"] = train_dataset
+
+        def train(self):
+            pass
+
+        def save_model(self, output_dir):
+            pass
+
+    class FakeTrainingArguments:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    fake_transformers = types.SimpleNamespace(
+        AutoModelForCausalLM=FakeAutoModel,
+        AutoTokenizer=FakeAutoTokenizer,
+        BitsAndBytesConfig=lambda **kwargs: kwargs,
+        Trainer=FakeTrainer,
+        TrainingArguments=FakeTrainingArguments,
+    )
+    fake_yaml = types.SimpleNamespace(
+        safe_load=lambda stream: json.loads(stream.read()),
+    )
+
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(sys.modules, "datasets", fake_datasets)
+    monkeypatch.setitem(sys.modules, "peft", fake_peft)
+    monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+    monkeypatch.setitem(sys.modules, "yaml", fake_yaml)
+
+    train_lora = load_train_lora_module()
+
+    monkeypatch.setattr(train_lora, "AutoTokenizer", FakeAutoTokenizer)
+    monkeypatch.setattr(train_lora, "AutoModelForCausalLM", FakeAutoModel)
+    monkeypatch.setattr(train_lora, "Trainer", FakeTrainer)
+    monkeypatch.setattr(train_lora, "TrainingArguments", FakeTrainingArguments)
+    monkeypatch.setattr(train_lora, "LoraConfig", lambda **kwargs: kwargs)
+    monkeypatch.setattr(train_lora, "get_peft_model", lambda model, config: model)
+
+    train_file = tmp_path / "train.jsonl"
+    train_file.write_text(json.dumps({"instruction": "hi", "response": "hello"}) + "\n", encoding="utf-8")
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        json.dumps(
+            {
+                "model_name": "fake-model",
+                "load_in_4bit": False,
+                "lora_rank": 8,
+                "lora_alpha": 16,
+                "lora_dropout": 0.05,
+                "target_modules": ["q_proj"],
+                "train_file": str(train_file),
+                "max_length": 6,
+                "output_dir": str(tmp_path / "out"),
+                "per_device_train_batch_size": 1,
+                "gradient_accumulation_steps": 1,
+                "learning_rate": 1e-4,
+                "num_train_epochs": 1,
+                "logging_steps": 1,
+                "save_steps": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(sys, "argv", ["train_lora.py", "--config", str(config_file)])
+
+    train_lora.main()
+
+    row = captured["train_dataset"][0]
+    assert row["input_ids"] == [10, 11, 12, 20, 21, 0]
+    assert row["attention_mask"] == [1, 1, 1, 1, 1, 0]
+    assert row["labels"] == [-100, -100, -100, 20, 21, -100]

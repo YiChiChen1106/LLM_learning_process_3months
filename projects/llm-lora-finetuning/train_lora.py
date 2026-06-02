@@ -19,13 +19,16 @@ def load_jsonl(path: str) -> Dataset:
     return Dataset.from_list(rows)
 
 
-def format_example(example: dict[str, str]) -> str:
+def format_prompt(example: dict[str, str]) -> str:
     return (
         "<|im_start|>user\n"
         f"{example['instruction']}<|im_end|>\n"
         "<|im_start|>assistant\n"
-        f"{example['response']}<|im_end|>"
     )
+
+
+def format_example(example: dict[str, str]) -> str:
+    return format_prompt(example) + f"{example['response']}<|im_end|>"
 
 
 def main() -> None:
@@ -72,11 +75,19 @@ def main() -> None:
     dataset = load_jsonl(cfg["train_file"])
 
     def tokenize(example: dict[str, str]) -> dict[str, list[int]]:
+        prompt = format_prompt(example)
         text = format_example(example)
+        prompt_ids = tokenizer(
+            prompt,
+            truncation=True,
+            max_length=cfg["max_length"],
+            padding=False,
+        )["input_ids"]
         encoded = tokenizer(text, truncation=True, max_length=cfg["max_length"], padding="max_length")
+        prompt_len = min(len(prompt_ids), len(encoded["input_ids"]))
         encoded["labels"] = [
-            token_id if mask == 1 else -100
-            for token_id, mask in zip(encoded["input_ids"], encoded["attention_mask"])
+            token_id if mask == 1 and i >= prompt_len else -100
+            for i, (token_id, mask) in enumerate(zip(encoded["input_ids"], encoded["attention_mask"]))
         ]
         return encoded
 
