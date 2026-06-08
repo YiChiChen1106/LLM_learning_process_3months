@@ -31,6 +31,36 @@ def format_example(example: dict[str, str]) -> str:
     return format_prompt(example) + f"{example['response']}<|im_end|>"
 
 
+class SFTDataCollator:
+    def __init__(self, tokenizer, pad_to_multiple_of: int | None = None):
+        self.tokenizer = tokenizer
+        self.pad_to_multiple_of = pad_to_multiple_of
+
+    def __call__(self, features: list[dict[str, list[int]]]) -> dict[str, torch.Tensor]:
+        labels = [feature["labels"] for feature in features]
+        no_labels_features = [{k: v for k, v in feature.items() if k != "labels"} for feature in features]
+
+        batch = self.tokenizer.pad(
+            no_labels_features,
+            padding=True,
+            pad_to_multiple_of=self.pad_to_multiple_of,
+            return_tensors="pt",
+        )
+
+        sequence_length = batch["input_ids"].shape[1]
+        padded_labels = []
+        for label in labels:
+            label = label.tolist() if hasattr(label, "tolist") else list(label)
+            pad_len = sequence_length - len(label)
+            if self.tokenizer.padding_side == "right":
+                padded_labels.append(label + [-100] * pad_len)
+            else:
+                padded_labels.append([-100] * pad_len + label)
+
+        batch["labels"] = torch.tensor(padded_labels, dtype=torch.long)
+        return batch
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -83,7 +113,7 @@ def main() -> None:
             max_length=cfg["max_length"],
             padding=False,
         )["input_ids"]
-        encoded = tokenizer(text, truncation=True, max_length=cfg["max_length"], padding="max_length")
+        encoded = tokenizer(text, truncation=True, max_length=cfg["max_length"], padding=False)
         prompt_len = min(len(prompt_ids), len(encoded["input_ids"]))
         encoded["labels"] = [
             token_id if mask == 1 and i >= prompt_len else -100
@@ -92,6 +122,7 @@ def main() -> None:
         return encoded
 
     tokenized = dataset.map(tokenize, remove_columns=dataset.column_names)
+    data_collator = SFTDataCollator(tokenizer, pad_to_multiple_of=cfg.get("pad_to_multiple_of"))
     training_args = TrainingArguments(
         output_dir=cfg["output_dir"],
         per_device_train_batch_size=cfg["per_device_train_batch_size"],
@@ -104,7 +135,7 @@ def main() -> None:
         report_to=["tensorboard"],
         remove_unused_columns=False,
     )
-    trainer = Trainer(model=model, args=training_args, train_dataset=tokenized)
+    trainer = Trainer(model=model, args=training_args, train_dataset=tokenized, data_collator=data_collator)
     trainer.train()
     trainer.save_model(cfg["output_dir"])
 
