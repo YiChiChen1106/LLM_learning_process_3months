@@ -61,6 +61,10 @@ class SFTDataCollator:
         return batch
 
 
+def has_trainable_label(example: dict[str, list[int]]) -> bool:
+    return any(label != -100 for label in example["labels"][1:])
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -103,6 +107,7 @@ def main() -> None:
     model.print_trainable_parameters()
 
     dataset = load_jsonl(cfg["train_file"])
+    loaded_count = len(dataset)
 
     def tokenize(example: dict[str, str]) -> dict[str, list[int]]:
         prompt = format_prompt(example)
@@ -122,6 +127,15 @@ def main() -> None:
         return encoded
 
     tokenized = dataset.map(tokenize, remove_columns=dataset.column_names)
+    tokenized = tokenized.filter(has_trainable_label)
+    kept_count = len(tokenized)
+    filtered_count = loaded_count - kept_count
+    print(f"Loaded {loaded_count} examples.")
+    print(f"Kept {kept_count} examples with trainable labels.")
+    print(f"Filtered {filtered_count} examples with all -100 labels.")
+    if len(tokenized) == 0:
+        raise ValueError("No trainable examples remain after filtering labels.")
+
     data_collator = SFTDataCollator(tokenizer, pad_to_multiple_of=cfg.get("pad_to_multiple_of"))
     training_args = TrainingArguments(
         output_dir=cfg["output_dir"],

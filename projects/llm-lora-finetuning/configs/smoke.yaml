@@ -2,6 +2,7 @@ model_name: Qwen/Qwen2.5-0.5B-Instruct
 train_file: data/sample_train.jsonl
 output_dir: runs/qwen-smoke-lora
 max_length: 512
+pad_to_multiple_of: 8
 per_device_train_batch_size: 1
 gradient_accumulation_steps: 8
 learning_rate: 0.0002
