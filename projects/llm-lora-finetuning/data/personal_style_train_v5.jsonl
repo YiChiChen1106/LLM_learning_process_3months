@@ -1,0 +1,48 @@
+{"instruction": "我没懂 LoRA，能用我的学习节奏解释一下吗？", "response": "先说结论：LoRA 是 Low-Rank Adaptation，一种微调方法。它冻结 base model，只训练 lora_A/lora_B 这类 adapter；不是预训练，也不是把模型压小。"}
+{"instruction": "LoRA 是轻量化预训练方法吗？", "response": "先说结论：不是。LoRA 是轻量化微调方法；预训练是训练 base model，LoRA 是在已有 base model 上训练 adapter。"}
+{"instruction": "LoRA 会把原来的大模型变成小模型吗？", "response": "先说结论：不会。base model 仍然完整存在，只是被冻结；LoRA 只新增并训练很小的 adapter 参数。"}
+{"instruction": "adapter checkpoint 为什么不能单独 generate？", "response": "先说结论：因为 adapter checkpoint 不是完整模型。它只保存 adapter 增量参数，必须和对应 base model 一起加载才能 generate。"}
+{"instruction": "如果只给 adapter_model.safetensors，能不能直接推理？", "response": "先说结论：不能。adapter_model.safetensors 主要保存 adapter 权重，不包含完整 base model；推理要加载 base model + adapter。"}
+{"instruction": "QLoRA 会量化 adapter 吗？", "response": "先说结论：通常不会。QLoRA 主要量化 frozen base weights，adapter 仍然是可训练参数。"}
+{"instruction": "为什么 QLoRA 的 trainable params 和 LoRA 基本一样？", "response": "先说结论：因为它们训练的都是 LoRA adapter。QLoRA 省的是 frozen base weights 的显存，不是减少 adapter 参数量。"}
+{"instruction": "target_modules 写 q_proj、k_proj、v_proj、o_proj 是什么意思？", "response": "先说结论：这是指定 attention 里的投影 Linear 加 LoRA。q/k/v/o 分别对应 query、key、value 和 attention 输出投影。"}
+{"instruction": "labels 里的 -100 是什么？", "response": "先说结论：-100 表示这个位置不参与 loss。SFT 里常用它 mask 掉 prompt 和 padding。"}
+{"instruction": "用保守方式解释 adapter checkpoint。", "response": "先说结论：adapter checkpoint 是微调得到的增量参数。它不是完整模型，必须配合对应 base model 使用。"}
+{"instruction": "LoRA 是预训练吗？", "response": "先说结论：不是。LoRA 是 fine-tuning 方法，不是 pretraining 方法。"}
+{"instruction": "LoRA 是预训练模型吗？", "response": "先说结论：不是。LoRA 是 adapter 微调方法；完整模型是 Qwen、Llama 这类 base model。"}
+{"instruction": "LoRA 是轻量化训练完整模型吗？", "response": "先说结论：不是。LoRA 不训练完整 base model，只训练新增 adapter。"}
+{"instruction": "LoRA 会压缩 base model 吗？", "response": "先说结论：不会。LoRA 不是模型压缩，它只是用低秩 adapter 表示微调增量。"}
+{"instruction": "LoRA 会更新卷积权重吗？", "response": "先说结论：在这里不会这么说。我们微调的是大语言模型里的 Linear adapter，不是 CNN 的卷积权重。"}
+{"instruction": "LoRA 会只更新部分卷积权重吗？", "response": "先说结论：不是。LLM LoRA 通常在 Linear 层上训练 adapter，比如 q_proj、k_proj、v_proj、o_proj。"}
+{"instruction": "LoRA 是低纬度参数迁移吗？", "response": "先说结论：更准确说是低秩适配 Low-Rank Adaptation。它训练低秩 adapter 来近似权重更新。"}
+{"instruction": "LoRA 是 Low Rate Communication 吗？", "response": "先说结论：在大模型微调语境里不是。这里的 LoRA 是 Low-Rank Adaptation。"}
+{"instruction": "LoRA 会把 base model 的权重以小增量形式保存下来吗？", "response": "先说结论：不准确。LoRA 保存的是 adapter 的增量参数，不保存完整 base weights。"}
+{"instruction": "LoRA 训练时 base model 的权重会重新加载更新吗？", "response": "先说结论：不会按这个方式理解。base weights 冻结，训练主要更新 adapter。"}
+{"instruction": "adapter checkpoint 是完整模型吗？", "response": "先说结论：不是。它缺少 embedding、Transformer blocks、lm_head 和完整 base weights。"}
+{"instruction": "adapter checkpoint 是预训练模型吗？", "response": "先说结论：不是。它是微调得到的 adapter 参数文件，不是完整预训练模型。"}
+{"instruction": "adapter_model.safetensors 里面包含 base model 吗？", "response": "先说结论：通常不包含。PEFT LoRA 的 adapter_model.safetensors 主要保存 adapter 权重。"}
+{"instruction": "adapter_model.safetensors 包含 base model 和 adapter 参数吗？", "response": "先说结论：不是这样。它主要包含 adapter 参数，完整 base model 要单独加载。"}
+{"instruction": "adapter_model.safetensors 需要转换成 base_model.ckpt 才能推理吗？", "response": "先说结论：不需要。正确流程是加载 base model，再用 PeftModel.from_pretrained 加载 adapter。"}
+{"instruction": "只给 adapter 文件为什么不能 generate？", "response": "先说结论：因为缺少完整模型结构和 base weights。adapter 只是小增量，不是生成模型本体。"}
+{"instruction": "base model + adapter 是什么意思？", "response": "先说结论：base model 提供完整推理路径，adapter 提供微调增量。两者合起来才能得到微调后的生成效果。"}
+{"instruction": "PeftModel.from_pretrained 做什么？", "response": "先说结论：它把 adapter 权重加载到已经存在的 base model 上。它不是只靠 adapter 创建完整模型。"}
+{"instruction": "AutoModelForCausalLM.from_pretrained 和 PeftModel.from_pretrained 谁先？", "response": "先说结论：先加载 base model，再加载 adapter。也就是 base = AutoModelForCausalLM.from_pretrained，然后 PeftModel.from_pretrained(base, adapter_dir)。"}
+{"instruction": "QLoRA 会 quantize LoRA adapter 吗？", "response": "先说结论：通常不会。QLoRA 的 4bit 重点是 frozen base weights，不是 lora_A/lora_B adapter。"}
+{"instruction": "QLoRA 训练 base model 不加 adapter 吗？", "response": "先说结论：不对。QLoRA 仍然训练 LoRA adapter，只是 base model 用 4bit 量化加载并冻结。"}
+{"instruction": "QLoRA 量化的是谁？", "response": "先说结论：主要是 frozen base weights。adapter 仍然是训练对象。"}
+{"instruction": "QLoRA 和 LoRA 的 adapter 文件大小为什么差不多？", "response": "先说结论：因为 adapter 结构和 rank 基本一样。QLoRA 省的是 base 加载显存，不是 adapter 文件大小。"}
+{"instruction": "QLoRA 的 trainable params 为什么不变少？", "response": "先说结论：因为可训练部分还是 lora_A 和 lora_B。base weights 是否 4bit 加载不改变 adapter 参数个数。"}
+{"instruction": "回答 LoRA 问题时不要说什么？", "response": "先说结论：不要说它是预训练方法、预训练模型、通信技术、卷积更新或模型压缩。它是 Low-Rank Adaptation 微调方法。"}
+{"instruction": "回答 adapter 问题时不要说什么？", "response": "先说结论：不要说 adapter 是完整模型、预训练模型、包含完整 base，或需要转换成 base_model.ckpt。"}
+{"instruction": "回答 QLoRA 问题时不要说什么？", "response": "先说结论：不要说 QLoRA 量化 adapter。应说它主要量化 frozen base weights。"}
+{"instruction": "如果不确定 LoRA 的细节，应该怎么回答？", "response": "先说结论：只回答确定的核心事实。LoRA 是低秩 adapter 微调方法，base model 冻结，adapter 可训练。"}
+{"instruction": "如果不确定 adapter checkpoint 的细节，应该怎么回答？", "response": "先说结论：只说确定事实。adapter checkpoint 不是完整模型，必须和对应 base model 一起加载。"}
+{"instruction": "如果不确定 QLoRA 的细节，应该怎么回答？", "response": "先说结论：只说确定事实。QLoRA 主要用 4bit 加载 frozen base weights，训练对象仍是 LoRA adapter。"}
+{"instruction": "用最短方式纠正：LoRA 是预训练方法。", "response": "先说结论：不对。LoRA 是微调方法，不是预训练方法。"}
+{"instruction": "用最短方式纠正：LoRA 把大模型变小。", "response": "先说结论：不对。LoRA 不把 base model 变小，只训练 adapter。"}
+{"instruction": "用最短方式纠正：adapter_model.safetensors 包含完整 base。", "response": "先说结论：不对。它主要保存 adapter 权重，完整 base 要单独加载。"}
+{"instruction": "用最短方式纠正：QLoRA 量化 adapter。", "response": "先说结论：不对。QLoRA 主要量化 frozen base weights。"}
+{"instruction": "用最短方式纠正：adapter checkpoint 可以单独 generate。", "response": "先说结论：不对。adapter checkpoint 必须和 base model 一起加载才能 generate。"}
+{"instruction": "生成回答时如果快要扩展到不确定内容怎么办？", "response": "先说结论：停在确定结论即可。不要继续编不存在的机制、文件格式或转换流程。"}
+{"instruction": "为什么我们要固定评测集？", "response": "先说结论：固定评测集让每一轮 adapter 在同一批问题上对比。这样能知道问题是真的修好了，还是只是换了错误。"}
+{"instruction": "为什么现在只针对错误项改数据？", "response": "先说结论：因为盲目加数据会引入新混乱。先修固定评测里暴露的错误，训练才更可控。"}

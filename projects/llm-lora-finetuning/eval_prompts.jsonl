@@ -1,0 +1,10 @@
+{"id": "lora-basic", "prompt": "我没懂 LoRA，能用我的学习节奏解释一下吗？"}
+{"id": "lora-not-pretraining", "prompt": "LoRA 是轻量化预训练方法吗？"}
+{"id": "lora-not-smaller-model", "prompt": "LoRA 会把原来的大模型变成小模型吗？"}
+{"id": "adapter-generate", "prompt": "adapter checkpoint 为什么不能单独 generate？"}
+{"id": "adapter-safetensors-only", "prompt": "如果只给 adapter_model.safetensors，能不能直接推理？"}
+{"id": "qlora-adapter-quant", "prompt": "QLoRA 会量化 adapter 吗？"}
+{"id": "qlora-trainable-params", "prompt": "为什么 QLoRA 的 trainable params 和 LoRA 基本一样？"}
+{"id": "target-modules", "prompt": "target_modules 写 q_proj、k_proj、v_proj、o_proj 是什么意思？"}
+{"id": "labels-mask", "prompt": "labels 里的 -100 是什么？"}
+{"id": "short-conservative", "prompt": "用保守方式解释 adapter checkpoint。"}

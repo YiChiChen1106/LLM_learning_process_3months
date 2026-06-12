@@ -1,0 +1,38 @@
+{"instruction": "我没懂 LoRA，能用我的学习节奏解释一下吗？", "response": "先说结论：LoRA 不是预训练方法，也不是把大模型变小。LoRA 是一种参数高效微调方法：冻结 base model 的原始权重，只训练插在目标 Linear 旁边的低秩 adapter，也就是 lora_A 和 lora_B。"}
+{"instruction": "用一句话准确解释 LoRA。", "response": "先说结论：LoRA 是 Low-Rank Adaptation，用低秩矩阵学习权重更新，让我们不用微调整个 base model，只训练很小的 adapter 参数。"}
+{"instruction": "LoRA 是轻量化预训练方法吗？", "response": "先说结论：不是。预训练是从大量数据中训练 base model；LoRA 是在已有 base model 上做参数高效微调，它不重新预训练模型。"}
+{"instruction": "LoRA 会把原来的大模型变成小模型吗？", "response": "先说结论：不会。LoRA 不会把 base model 压缩成小模型，它只是冻结 base weights，并在部分 Linear 上新增低秩 adapter；推理时仍然需要 base model。"}
+{"instruction": "LoRA 是预训练模型吗？", "response": "先说结论：不是。Qwen、Llama 这类才是 base model 或预训练模型；LoRA 是一种 adapter 微调方法，本身不是完整模型。"}
+{"instruction": "LoRA 是 Low Rate Communication 吗？", "response": "先说结论：在大模型微调语境里不是。这里的 LoRA 指 Low-Rank Adaptation，也就是低秩适配，用少量可训练参数近似完整权重更新。"}
+{"instruction": "模型如果说 LoRA 是通信技术，这句话对吗？", "response": "先说结论：在我们今天的大模型微调语境里不对。我们讨论的 LoRA 是 Low-Rank Adaptation，不是通信领域里的 LoRa。回答时要绑定到 LLM fine-tuning 语境。"}
+{"instruction": "模型如果说 LoRA 是预训练方法，这句话对吗？", "response": "先说结论：不对。LoRA 是 fine-tuning 阶段的方法，不是 pretraining 阶段的方法；它依赖一个已经存在的 base model，然后只训练新增 adapter。"}
+{"instruction": "模型如果说 LoRA 把大模型变小，这句话对吗？", "response": "先说结论：不准确。LoRA 让训练参数变少，但不等于把 base model 变成小模型；base model 的权重仍然存在，只是被冻结，不参与更新。"}
+{"instruction": "base model 和 LoRA adapter 是什么关系？", "response": "先说结论：base model 是完整模型，adapter 是挂在它上面的小增量。base model 提供 embedding、Transformer blocks、lm_head 等完整推理路径；adapter 只给部分 Linear 增加 LoRA delta。"}
+{"instruction": "adapter checkpoint 为什么不能单独 generate？", "response": "先说结论：因为 adapter checkpoint 不是完整模型。它只保存 LoRA 新增权重，通常不包含 embedding、Transformer block、lm_head 和完整 base weights，所以必须和 base model 一起加载才能 generate。"}
+{"instruction": "adapter checkpoint 是预训练模型吗？", "response": "先说结论：不是。adapter checkpoint 是微调得到的增量参数文件，不是从头预训练出的完整模型；它必须依附于同一个或兼容的 base model。"}
+{"instruction": "adapter checkpoint 里面有没有完整 Qwen 权重？", "response": "先说结论：没有。PEFT LoRA 的 adapter_model.safetensors 主要存 lora_A 和 lora_B 等 adapter 权重，不存完整 Qwen base weights。"}
+{"instruction": "adapter checkpoint 能不能替代 base model？", "response": "先说结论：不能。adapter checkpoint 只是对 base model 的小改动，不包含完整网络；推理时需要先加载 base model，再加载 adapter。"}
+{"instruction": "为什么 adapter_model.safetensors 只有几 MB？", "response": "先说结论：因为它不是完整模型。它只保存 LoRA adapter 的小矩阵，而完整 base model 有几亿甚至几十亿参数，体积会大很多。"}
+{"instruction": "generate 时只给 adapter 路径可以吗？", "response": "先说结论：不可以。generate 需要完整模型结构和 base weights；正确流程是先 AutoModelForCausalLM.from_pretrained 加载 base，再用 PeftModel.from_pretrained 加载 adapter。"}
+{"instruction": "LoRA forward 可以怎么理解？", "response": "先说结论：可以理解成 base_output 加 LoRA_delta。base Linear 的原始权重被冻结，LoRA 用 lora_B(lora_A(x)) 产生一个小增量，再按 alpha / r 缩放后加回去。"}
+{"instruction": "LoRA 训练时更新哪些参数？", "response": "先说结论：主要更新 lora_A.weight 和 lora_B.weight。base model 的原始权重被冻结，所以 optimizer 不会更新完整 q_proj、k_proj、v_proj、o_proj 的 base weights。"}
+{"instruction": "LoRA 为什么省训练显存？", "response": "先说结论：因为它不训练完整 base weights。完整微调要为大量参数保存梯度和 optimizer states；LoRA 只为少量 adapter 参数保存这些训练状态。"}
+{"instruction": "QLoRA 和 LoRA 的核心差别是什么？", "response": "先说结论：训练对象基本一样，都是 LoRA adapter；差别是 QLoRA 用 4bit 量化方式加载 frozen base weights，因此进一步节省 base model 的显存。"}
+{"instruction": "QLoRA 会减少 trainable params 吗？", "response": "先说结论：通常不会。QLoRA 不靠减少 adapter 参数量省显存，它靠量化 frozen base weights 省显存，所以 trainable params 往往和 LoRA 一样。"}
+{"instruction": "QLoRA 会量化 lora_A 和 lora_B 吗？", "response": "先说结论：通常不会。lora_A 和 lora_B 是训练中要频繁更新的 adapter 参数，通常保持 bf16/fp16；QLoRA 重点量化的是冻结的 base weights。"}
+{"instruction": "load_in_4bit=True 量化的是谁？", "response": "先说结论：主要量化 base model 的 frozen weights。它不是把训练目标改成 4bit adapter，而是让大块只读 base weights 更省显存。"}
+{"instruction": "QLoRA 推理为什么也要 4bit base？", "response": "先说结论：如果想保留省显存优势，推理时也要用 4bit 加载 base model，再挂 adapter。adapter 本身不提供完整推理能力。"}
+{"instruction": "target_modules 写 q_proj、k_proj、v_proj、o_proj 是什么意思？", "response": "先说结论：这是告诉 PEFT 只在 attention 的这些投影 Linear 上插 LoRA。q_proj 生成 query，k_proj 生成 key，v_proj 生成 value，o_proj 处理 attention 输出。"}
+{"instruction": "target_modules 写错会怎样？", "response": "先说结论：如果完全找不到模块，PEFT 通常会报错；如果匹配到不合适的模块，训练可能能跑，但 adapter 加错位置，效果和参数量都会偏离预期。"}
+{"instruction": "r 和 lora_alpha 怎么记？", "response": "先说结论：r 是 adapter 的低秩维度，控制容量和参数量；lora_alpha 是缩放强度，常见缩放是 alpha / r，控制 LoRA delta 加回 base output 的力度。"}
+{"instruction": "为什么第二轮还会把 LoRA 说错？", "response": "先说结论：因为小模型和小数据很容易学到表面格式，却没有稳定绑定概念。第三轮要用 hard negative 反复纠正：LoRA 不是预训练方法，不会把大模型变小，adapter 不是完整模型。"}
+{"instruction": "什么叫 hard negative 数据？", "response": "先说结论：hard negative 就是专门针对模型容易犯的相似错误写的训练样本。比如模型会说 LoRA 是预训练方法，我们就直接问这句话对不对，并给出明确否定和正确解释。"}
+{"instruction": "第三轮训练最想修什么？", "response": "先说结论：最想修三个错误。第一，LoRA 不是预训练方法；第二，LoRA 不会把大模型变小；第三，adapter checkpoint 不是完整模型，不能单独 generate。"}
+{"instruction": "怎么判断第三轮有没有进步？", "response": "先说结论：不用只看 loss，要看高风险 prompt。比如问 LoRA 是不是预训练模型、adapter 能不能单独 generate，如果回答能稳定否定错误说法并给出 base + adapter 关系，才算进步。"}
+{"instruction": "如果 loss 降了但答案还错，说明什么？", "response": "先说结论：说明训练目标拟合了，但事实行为没有被我们真正验证好。小数据实验必须看生成对比，特别看之前犯错的 prompt 有没有被修正。"}
+{"instruction": "我想要学习搭子风格解释 batch size。", "response": "先说结论：batch size 是一次送进模型的样本数。per_device_train_batch_size 是每张 GPU 一次放几条，gradient_accumulation_steps 是攒几次梯度再更新；有效 batch size 要把这些乘起来。"}
+{"instruction": "labels 里的 -100 是什么？", "response": "先说结论：-100 表示这个位置不参与 loss。SFT 里 prompt 仍然给模型看，但 prompt 的 label 通常设成 -100，让 loss 只训练 assistant response。"}
+{"instruction": "attention_mask 和 -100 有什么区别？", "response": "先说结论：attention_mask 管哪些 token 是有效输入，labels 里的 -100 管哪些位置不算 loss。一个影响模型看 token，一个影响训练惩罚 token。"}
+{"instruction": "collator 是干什么的？", "response": "先说结论：collator 把多条样本拼成一个 batch。它会 padding input_ids，给 attention_mask 的 padding 位置补 0，给 labels 的 padding 位置补 -100。"}
+{"instruction": "今天真实训练要记住什么？", "response": "先说结论：真实训练不是只看能不能跑完。你要确认数据进入训练、adapter 参数可训练、base 权重冻结、adapter 文件保存，并用 base + adapter 的生成结果检查行为变化。"}
+{"instruction": "为什么今天还不急着上 7B？", "response": "先说结论：因为流程和数据质量比模型大小更先决定实验是否可控。0.5B 上能快速暴露数据问题，等 prompt、labels、adapter 加载和评估稳定后，再放大到 3B 或 7B 更稳。"}

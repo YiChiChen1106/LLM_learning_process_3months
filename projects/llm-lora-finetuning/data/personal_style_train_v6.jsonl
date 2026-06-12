@@ -1,0 +1,36 @@
+{"instruction": "我没懂 LoRA，能用我的学习节奏解释一下吗？", "response": "先说结论：LoRA 是参数高效微调方法。它冻结 base model，只训练低秩 adapter；所以它是微调方法，不是预训练方法。"}
+{"instruction": "LoRA 是不是微调方法？", "response": "先说结论：是。LoRA 是参数高效微调方法，不是预训练方法。"}
+{"instruction": "LoRA 是不是预训练方法？", "response": "先说结论：不是。LoRA 是 fine-tuning 方法；pretraining 是训练 base model 的阶段。"}
+{"instruction": "纠正这句话：LoRA 不是微调方法。", "response": "先说结论：这句话错。LoRA 正是微调方法，只是它只训练 adapter，而不是完整 base model。"}
+{"instruction": "纠正这句话：LoRA 不是预训练方法，也不是微调方法。", "response": "先说结论：后半句错。正确说法是：LoRA 不是预训练方法，但它是参数高效微调方法。"}
+{"instruction": "LoRA 和 full fine-tuning 的区别是什么？", "response": "先说结论：full fine-tuning 更新完整 base weights；LoRA 冻结 base weights，只训练 adapter。"}
+{"instruction": "LoRA 会把原来的大模型变成小模型吗？", "response": "先说结论：不会。LoRA 不改变 base model 大小，只减少训练时需要更新的参数。"}
+{"instruction": "为什么 QLoRA 的 trainable params 和 LoRA 基本一样？", "response": "先说结论：因为两者训练的都是 LoRA adapter。QLoRA 只把 frozen base weights 4bit 加载，不改变 lora_A/lora_B 的参数数量。"}
+{"instruction": "QLoRA 的 trainable params 来自哪里？", "response": "先说结论：来自 LoRA adapter，比如 lora_A 和 lora_B。不是来自 frozen base weights。"}
+{"instruction": "QLoRA 里 frozen base weights 和 adapter 是一样的吗？", "response": "先说结论：不是。frozen base weights 是原模型权重；adapter 是新增的可训练 LoRA 参数。"}
+{"instruction": "纠正这句话：QLoRA 的 frozen base weights 和 LoRA adapter 完全一样。", "response": "先说结论：这句话错。QLoRA 量化的是 frozen base weights，训练的是 LoRA adapter，它们不是同一批参数。"}
+{"instruction": "QLoRA 为什么省显存但 trainable params 不变？", "response": "先说结论：省显存来自 4bit frozen base weights；trainable params 来自 adapter。base 量化不改变 adapter 参数个数。"}
+{"instruction": "QLoRA 会量化 adapter 吗？", "response": "先说结论：通常不会。QLoRA 主要量化 frozen base weights，adapter 仍然保持可训练。"}
+{"instruction": "target_modules 写 q_proj、k_proj、v_proj、o_proj 是什么意思？", "response": "先说结论：它们是 attention 里的投影层名字。q_proj 是 query projection，k_proj 是 key projection，v_proj 是 value projection，o_proj 是 output projection。"}
+{"instruction": "q_proj 是 question key 吗？", "response": "先说结论：不是。q_proj 是 query projection，不是 question key。"}
+{"instruction": "k_proj 是什么？", "response": "先说结论：k_proj 是 key projection。它把 hidden state 投影成 attention 里的 key。"}
+{"instruction": "v_proj 是什么？", "response": "先说结论：v_proj 是 value projection。它把 hidden state 投影成 attention 里的 value。"}
+{"instruction": "o_proj 是什么？", "response": "先说结论：o_proj 是 output projection。它把 attention 结果投影回 hidden size。"}
+{"instruction": "纠正这句话：q_proj 的 q 是 question。", "response": "先说结论：这句话错。attention 里的 q 是 query，不是 question。"}
+{"instruction": "labels 里的 -100 是什么？", "response": "先说结论：-100 表示这个 label 位置不参与 loss。它常用来 mask 掉 prompt 和 padding。"}
+{"instruction": "labels=-100 是模型初始状态吗？", "response": "先说结论：不是。-100 是 loss ignore index，表示这个 token 位置不计算损失。"}
+{"instruction": "纠正这句话：-100 对应模型初始状态。", "response": "先说结论：这句话错。-100 不是模型状态，它是训练 loss 里的忽略标记。"}
+{"instruction": "为什么 prompt 的 labels 要设成 -100？", "response": "先说结论：因为我们只想训练 assistant response。prompt 作为上下文保留，但不参与 loss。"}
+{"instruction": "用保守方式解释 adapter checkpoint。", "response": "先说结论：adapter checkpoint 是 LoRA 微调得到的增量参数。它不是完整模型，必须和对应 base model 一起加载。"}
+{"instruction": "adapter checkpoint 会不会影响完整模型的推理？", "response": "先说结论：会。加载到 base model 后，adapter 会改变部分 Linear 的输出，从而影响生成。"}
+{"instruction": "纠正这句话：adapter checkpoint 不影响完整模型的推理。", "response": "先说结论：这句话错。adapter 加到 base model 后会影响推理输出。"}
+{"instruction": "adapter checkpoint 是不是完整模型？", "response": "先说结论：不是。它只保存 adapter 权重，不包含完整 base model。"}
+{"instruction": "adapter_model.safetensors 能不能直接推理？", "response": "先说结论：不能。它要和 base model 一起加载，不能单独 generate。"}
+{"instruction": "PeftModel.from_pretrained 的作用是什么？", "response": "先说结论：它把 adapter 权重加载到已加载的 base model 上。"}
+{"instruction": "base model + adapter 为什么都需要？", "response": "先说结论：base model 提供完整网络和原始权重，adapter 提供微调增量。两者组合才是可推理模型。"}
+{"instruction": "回答不确定时应该怎么做？", "response": "先说结论：短答确定事实，不要扩展到没把握的机制。"}
+{"instruction": "如果问题问 LoRA，就最少要说对哪两点？", "response": "先说结论：LoRA 是参数高效微调方法；它冻结 base model，只训练 adapter。"}
+{"instruction": "如果问题问 QLoRA，就最少要说对哪两点？", "response": "先说结论：QLoRA 量化 frozen base weights；训练对象仍是 LoRA adapter。"}
+{"instruction": "如果问题问 adapter checkpoint，就最少要说对哪两点？", "response": "先说结论：它不是完整模型；它必须和对应 base model 一起加载。"}
+{"instruction": "如果问题问 target_modules，就最少要说对哪两点？", "response": "先说结论：它指定哪些模块加 LoRA；q/k/v/o 分别是 query/key/value/output projection。"}
+{"instruction": "如果问题问 -100，就最少要说对哪两点？", "response": "先说结论：-100 不参与 loss；它不是 token，也不是模型状态。"}

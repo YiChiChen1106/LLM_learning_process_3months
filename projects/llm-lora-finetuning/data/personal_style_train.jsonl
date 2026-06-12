@@ -1,0 +1,18 @@
+{"instruction": "我没懂 LoRA，能用我的学习节奏解释一下吗？", "response": "先说结论：LoRA 就是不改大模型原来的大权重，只训练一小组新增参数。你可以把 base model 当成冻结的旧知识，把 adapter 当成今天新学的笔记；训练时只改笔记，所以显存和参数量都小很多。"}
+{"instruction": "QLoRA 和 LoRA 到底差在哪？", "response": "先说结论：它们训练的都是 LoRA adapter，差别主要在 base model 怎么放进显存。LoRA 通常用 bf16 或 fp16 放 frozen base weights，QLoRA 把这些 frozen base weights 用 4bit 量化存起来，所以更省显存。"}
+{"instruction": "为什么 QLoRA 的 trainable params 没有比 LoRA 少？", "response": "先说结论：因为 QLoRA 没有减少 adapter 的参数量。它省的是冻结 base weight 的存储显存，而不是把 lora_A 和 lora_B 砍掉；所以你看到 trainable params 基本一样是正常的。"}
+{"instruction": "target_modules 是干什么的？", "response": "先说结论：target_modules 决定哪些 Linear 会被加上 LoRA adapter。比如写 q_proj、k_proj、v_proj、o_proj，就是只在 attention 的这些投影层上加 LoRA；如果名字写错，PEFT 可能找不到对应模块，训练就不会按预期发生。"}
+{"instruction": "r 和 lora_alpha 分别控制什么？", "response": "先说结论：r 控制 LoRA adapter 的容量，lora_alpha 控制 LoRA delta 加回 base output 时的缩放强度。r 越大，可训练参数越多；alpha 更像是调节这条新增路径的音量。"}
+{"instruction": "adapter checkpoint 为什么不能单独 generate？", "response": "先说结论：adapter 不是完整模型，它只是一小组增量参数。generate 需要完整的 base model 负责词表、embedding、Transformer block 和输出头，然后 adapter 只是在部分 Linear 上补一条 LoRA delta。"}
+{"instruction": "labels 里为什么要有 -100？", "response": "先说结论：-100 表示这个位置不参与 loss。SFT 里 prompt 仍然会作为输入给模型看，但 prompt 部分的 label 通常设成 -100，这样模型只因为 assistant response 的预测错误被惩罚。"}
+{"instruction": "attention_mask 和 labels 的 -100 是一回事吗？", "response": "先说结论：不是一回事。attention_mask 控制模型哪些 token 可以被当成有效输入，labels 里的 -100 控制哪些位置不算 loss；一个管看不看，一个管罚不罚。"}
+{"instruction": "collator 到底做什么？", "response": "先说结论：collator 把一条一条样本拼成一个 batch。因为不同样本长度不一样，它会 padding input_ids，padding attention_mask，并且把 labels 的 padding 位置补成 -100。"}
+{"instruction": "动态 padding 和固定 max_length padding 有什么区别？", "response": "先说结论：动态 padding 只补到当前 batch 的最长样本，固定 max_length padding 每条都补到固定长度。比如当前 batch 最长 109，按 8 对齐会补到 112；如果固定 512，就会多出很多无用 padding。"}
+{"instruction": "batch size 我还是没搞懂。", "response": "先说结论：batch size 是一次送进模型的样本数。per_device_train_batch_size 是每张 GPU 一次放多少条；gradient_accumulation_steps 是攒几次梯度再更新，所以有效 batch size 要把这些乘起来。"}
+{"instruction": "gradient_accumulation_steps=8 是什么意思？", "response": "先说结论：它表示不是每个小 batch 都立刻更新参数，而是连续算 8 个小 batch 的梯度后再更新一次。这样显存里一次可以只放少量样本，但训练效果接近更大的 batch。"}
+{"instruction": "bf16=torch.cuda.is_available() 这行是什么意思？", "response": "先说结论：有 CUDA GPU 时就用 bf16 训练，没有 GPU 时就不用。bf16 可以减少显存占用，也更适合现代 GPU 上的大模型训练。"}
+{"instruction": "为什么训练前要先看 base model 输出？", "response": "先说结论：因为你需要一个对照组。先保存 base 输出，再训练 adapter，最后比较 base 和 adapter 输出，才能判断这次训练有没有真的改变模型行为。"}
+{"instruction": "小数据训练出来效果不好是不是失败？", "response": "先说结论：不一定。今天这种 10 到 20 条小数据的目标是验证流程和观察 adapter 是否影响输出，不是训练一个强模型。能跑通 data 到 adapter 到 generate，就是今天的主要成功。"}
+{"instruction": "LoRA 训练时 base model 会不会更新？", "response": "先说结论：正常 PEFT LoRA 训练里 base model 是冻结的。真正更新的是 lora_A.weight 和 lora_B.weight，所以训练日志里 trainable params 只占 all params 的很小比例。"}
+{"instruction": "QLoRA 推理时还需要 4bit 加载 base 吗？", "response": "先说结论：如果你想保留 QLoRA 的省显存优势，推理时也应该用 4bit 加载 base model，再加载 adapter。否则用普通 bf16 base 加 adapter 也能推理，但显存优势就少了。"}
+{"instruction": "今天开始真实训练最应该看什么结果？", "response": "先说结论：先看四个东西。第一，trainable params 是否只有 adapter；第二，loss 是否正常跑起来；第三，adapter_model.safetensors 是否保存；第四，加载 base+adapter 后输出是否有变化。"}
