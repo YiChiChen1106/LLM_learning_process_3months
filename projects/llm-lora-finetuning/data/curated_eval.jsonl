@@ -1,0 +1,12 @@
+{"id": "lora_pretraining_rephrase", "prompt": "有人说 LoRA 属于 pretraining，这种说法对吗？", "expected": "应答出 LoRA 不是预训练方法，而是参数高效微调方法。"}
+{"id": "lora_full_finetune_rephrase", "prompt": "LoRA 微调时是不是要把 Qwen 的全部参数都更新一遍？", "expected": "应答出通常不更新完整 base weights，只训练 adapter。"}
+{"id": "qlora_memory_rephrase", "prompt": "QLoRA 为什么更省显存，是因为 adapter 参数更少吗？", "expected": "应答出不是 adapter 更少，而是 frozen base weights 4bit 量化加载。"}
+{"id": "qlora_trainable_params_rephrase", "prompt": "为什么我看到 LoRA 和 QLoRA 的可训练参数数量一样？", "expected": "应答出二者训练对象都是 LoRA adapter，base 是否量化不改变 adapter 参数量。"}
+{"id": "adapter_only_rephrase", "prompt": "我只有 adapter_model.safetensors，没有下载 base model，可以直接让它聊天吗？", "expected": "应答出不能，adapter 不是完整模型，必须和对应 base model 一起加载。"}
+{"id": "adapter_contents_rephrase", "prompt": "adapter 文件很小，是因为里面也存了一份压缩后的 Qwen 吗？", "expected": "应答出不是，它主要存 adapter 权重，不包含完整 base model。"}
+{"id": "target_modules_rephrase", "prompt": "配置里写 q_proj、k_proj、v_proj、o_proj，PEFT 会把 LoRA 加到哪里？", "expected": "应答出加到 attention 的 query/key/value/output projection 模块。"}
+{"id": "loss_ignore_rephrase", "prompt": "为什么 prompt 部分的 label 要设成 -100，而不是让模型也预测用户问题？", "expected": "应答出 prompt 作为上下文保留，但不参与 loss，训练重点是 assistant response。"}
+{"id": "mask_vs_loss_rephrase", "prompt": "attention_mask=0 和 labels=-100 是不是同一件事？", "expected": "应答出不是，attention_mask 管有效输入，-100 管 loss 忽略。"}
+{"id": "collator_rephrase", "prompt": "两条样本长度不一样时，训练前是谁把它们补到同一长度的？labels 的补位应该是什么？", "expected": "应答出 collator 负责 padding，labels padding 应补 -100。"}
+{"id": "effective_batch_rephrase", "prompt": "每张 GPU batch size 是 1，但 gradient_accumulation_steps 是 8，这代表每一步都更新参数吗？", "expected": "应答出不是，每 8 个小 batch 累积后更新一次，有效 batch size 增大。"}
+{"id": "baseline_compare_rephrase", "prompt": "为什么不能只看训练后的回答，还要先记录 base 模型回答？", "expected": "应答出需要 base 作为对照，才能判断 adapter 带来的变化。"}

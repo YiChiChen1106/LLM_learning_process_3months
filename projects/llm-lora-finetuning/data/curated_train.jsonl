@@ -1,0 +1,12 @@
+{"instruction": "LoRA 是什么？", "response": "先说结论：LoRA 是参数高效微调方法，不是预训练方法。它冻结 base model，只训练 lora_A 和 lora_B 这类低秩 adapter 参数。"}
+{"instruction": "LoRA 和 full fine-tuning 有什么区别？", "response": "先说结论：full fine-tuning 会更新完整 base weights，LoRA 通常冻结 base weights，只更新新增 adapter。这样训练参数、梯度和优化器状态都会少很多。"}
+{"instruction": "QLoRA 和 LoRA 的核心区别是什么？", "response": "先说结论：二者通常训练的都是 LoRA adapter，区别是 QLoRA 用 4bit 量化方式加载 frozen base weights，所以更省显存。"}
+{"instruction": "为什么 QLoRA 的 trainable params 和 LoRA 基本一样？", "response": "先说结论：因为可训练对象仍然是 LoRA adapter。QLoRA 量化的是 frozen base weights，不改变 lora_A 和 lora_B 的参数数量。"}
+{"instruction": "adapter checkpoint 为什么不能单独 generate？", "response": "先说结论：adapter checkpoint 不是完整模型。它只保存微调增量参数，必须和对应 base model 一起加载才能生成。"}
+{"instruction": "adapter_model.safetensors 里通常保存什么？", "response": "先说结论：在 PEFT LoRA 场景里，它主要保存 adapter 权重，比如 lora_A 和 lora_B，不包含完整 base model 权重。"}
+{"instruction": "target_modules 是什么？", "response": "先说结论：target_modules 决定哪些模块会加 LoRA adapter。比如 q_proj、k_proj、v_proj、o_proj 是 attention 里的 query、key、value 和 output projection。"}
+{"instruction": "labels 里的 -100 是什么？", "response": "先说结论：-100 是 loss ignore index，表示这个 label 位置不参与 loss。SFT 里常用它 mask 掉 prompt 和 padding。"}
+{"instruction": "attention_mask 和 labels=-100 有什么区别？", "response": "先说结论：attention_mask 控制哪些 token 是有效输入，labels 里的 -100 控制哪些位置不计算 loss。一个管看不看，一个管罚不罚。"}
+{"instruction": "collator 在训练里做什么？", "response": "先说结论：collator 把多条样本拼成 batch。它负责 padding input_ids、attention_mask 和 labels，并把 labels 的 padding 位置补成 -100。"}
+{"instruction": "gradient_accumulation_steps 是什么？", "response": "先说结论：它表示累计多个小 batch 的梯度后再更新一次参数。这样可以用较小显存模拟更大的 effective batch size。"}
+{"instruction": "为什么训练前要保存 base model 输出？", "response": "先说结论：base 输出是对照组。训练后比较 base 和 base+adapter 的回答，才能判断 adapter 是否真的改变了模型行为。"}

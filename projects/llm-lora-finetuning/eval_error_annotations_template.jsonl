@@ -1,0 +1,12 @@
+{"prompt_id": "lora_pretraining_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "lora_full_finetune_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "qlora_memory_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "qlora_trainable_params_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "adapter_only_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "adapter_contents_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "target_modules_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "loss_ignore_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "mask_vs_loss_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "collator_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "effective_batch_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
+{"prompt_id": "baseline_compare_rephrase", "run": "", "is_correct": null, "error_types": [], "note": ""}
