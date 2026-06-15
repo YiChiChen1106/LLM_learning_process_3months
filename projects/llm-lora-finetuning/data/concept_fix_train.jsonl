@@ -1,0 +1,10 @@
+{"instruction": "请纠正这句话：LoRA 训练的是 base weights。", "response": "先说结论：不对。LoRA 通常冻结 base weights，只训练新增的 LoRA adapter 参数，比如 lora_A.weight 和 lora_B.weight。"}
+{"instruction": "请纠正这句话：QLoRA 会把 LoRA adapter 也量化成 4bit。", "response": "先说结论：不对。QLoRA 通常量化的是 frozen base weights，LoRA adapter 仍保持可训练精度。"}
+{"instruction": "请纠正这句话：lora_alpha 就是 LoRA 的参数数量。", "response": "先说结论：不对。lora_alpha 是 scaling 超参数，主要影响 LoRA delta 的输出强度；参数数量主要由 rank r 和目标模块形状决定。"}
+{"instruction": "请纠正这句话：rank r 变大不会明显影响参数量。", "response": "先说结论：不对。rank r 变大通常会增加 adapter 参数量和表达能力，也会增加训练和存储成本。"}
+{"instruction": "请纠正这句话：adapter_model.safetensors 可以单独当完整模型推理。", "response": "先说结论：不对。adapter checkpoint 只保存微调增量参数，必须和对应 base model 一起加载才能生成。"}
+{"instruction": "请纠正这句话：adapter 文件里保存的是压缩后的完整 Qwen。", "response": "先说结论：不对。adapter 文件主要保存 LoRA adapter 权重，不包含完整 base model 权重。"}
+{"instruction": "请纠正这句话：target_modules 写错只会稍微慢一点，不会影响插层。", "response": "先说结论：不对。target_modules 必须和模型里的模块名匹配，写错会导致找不到目标层，LoRA 可能根本没插上去。"}
+{"instruction": "请纠正这句话：QLoRA 训练时会更新冻结的 base weights。", "response": "先说结论：不对。QLoRA 仍然冻结 base weights，训练的主要还是 LoRA adapter；区别在于 base weights 用 4bit 量化方式加载。"}
+{"instruction": "请纠正这句话：LoRA 和 QLoRA 的可训练参数数目差很多。", "response": "先说结论：通常不对。二者训练对象基本都是 LoRA adapter，所以可训练参数数量通常差不多；差异主要在 base weights 是否量化。"}
+{"instruction": "请纠正这句话：量化后的 base weight 在 forward 里完全不参与计算。", "response": "先说结论：不对。QLoRA 里量化后的 base weight 仍然参与 forward，只是以量化存储和低精度/反量化计算的方式参与，再叠加 LoRA delta。"}

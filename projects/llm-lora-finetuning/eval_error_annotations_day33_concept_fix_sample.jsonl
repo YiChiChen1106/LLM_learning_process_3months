@@ -1,0 +1,10 @@
+{"prompt_id": "concept_lora_not_pretraining", "run": "concept-fix", "is_correct": false, "error_types": ["factual_error", "hallucinated_mechanism"], "note": "错误说 LoRA 是预训练方法，并编造成 Local Response Normalization。"}
+{"prompt_id": "concept_lora_not_full_update", "run": "concept-fix", "is_correct": false, "error_types": ["concept_confusion", "hallucinated_mechanism"], "note": "能否定全部参数更新，但把 LoRA 编造成 Local Robustness with Quantization，没有说清 adapter 训练对象。"}
+{"prompt_id": "concept_lora_low_rank_delta", "run": "concept-fix", "is_correct": false, "error_types": ["concept_confusion", "incomplete_answer"], "note": "提到低秩和增量，但没有说清 A/B adapter 与冻结 base weights 的关系。"}
+{"prompt_id": "concept_lora_adapter_params", "run": "concept-fix", "is_correct": false, "error_types": ["factual_error", "hallucinated_mechanism"], "note": "没有回答 lora_A/lora_B，编造初始权重、偏置项等优化对象。"}
+{"prompt_id": "concept_lora_alpha", "run": "concept-fix", "is_correct": false, "error_types": ["factual_error", "hallucinated_mechanism"], "note": "把 lora_alpha 编造成阿里云预训练模型，没有说明 scaling。"}
+{"prompt_id": "concept_lora_rank", "run": "concept-fix", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "错误说 r 增大会更接近高斯分布并减少参数数量，和预期相反。"}
+{"prompt_id": "concept_qlora_memory", "run": "concept-fix", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "把 QLoRA 解释成 adapter 参数减少，没有说 frozen base weights 4bit 量化。"}
+{"prompt_id": "concept_qlora_trainable_params", "run": "concept-fix", "is_correct": false, "error_types": ["incomplete_answer", "concept_confusion"], "note": "区分 LoRA/QLoRA 的说法很泛，没有回答可训练参数一样是因为都训练 adapter。"}
+{"prompt_id": "concept_qlora_adapter_not_quantized", "run": "concept-fix", "is_correct": false, "error_types": ["hallucinated_mechanism", "incomplete_answer"], "note": "开头否定量化 adapter，但后面编造 LoRA 是预训练模型，且没说明量化 frozen base weights。"}
+{"prompt_id": "concept_quantized_base_forward", "run": "concept-fix", "is_correct": false, "error_types": ["incomplete_answer", "hallucinated_mechanism"], "note": "没有说明量化存储、计算时反量化/低精度计算与 LoRA delta 叠加，解释偏离 QLoRA。"}

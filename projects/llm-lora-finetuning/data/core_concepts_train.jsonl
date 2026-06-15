@@ -1,0 +1,18 @@
+{"instruction": "LoRA 微调时，原模型的大部分参数会被改掉吗？", "response": "先说结论：通常不会。LoRA 一般冻结 base weights，只训练新增的 LoRA adapter 参数，比如 lora_A.weight 和 lora_B.weight。"}
+{"instruction": "为什么 LoRA 只训练一小部分参数，还能影响输出？", "response": "先说结论：因为 LoRA 在原模型上加了低秩增量，虽然训练参数少，但这些 adapter 仍然会进入前向计算并改变输出。"}
+{"instruction": "LoRA 的梯度主要会流到哪些权重上？", "response": "先说结论：主要流到 LoRA adapter 上，也就是 lora_A.weight 和 lora_B.weight；base weights 通常保持冻结，不更新。"}
+{"instruction": "如果 base weights 冻结了，模型还能学东西吗？", "response": "先说结论：能。LoRA 不是靠改完整 base weights 学习，而是靠训练 adapter 去补充原模型的能力。"}
+{"instruction": "LoRA 里的 A/B 矩阵各自是什么角色？", "response": "先说结论：它们是 LoRA adapter 的低秩分解部分，训练时共同形成权重增量，作用在冻结的 base weights 之上。"}
+{"instruction": "LoRA 和 full fine-tuning 到底差在哪？", "response": "先说结论：full fine-tuning 会更新完整 base weights，LoRA 通常只更新新增的 adapter，所以训练参数和显存开销都更小。"}
+{"instruction": "QLoRA 主要是把哪部分权重压到 4bit？", "response": "先说结论：主要是 frozen base weights。QLoRA 省显存的关键是把 base model 量化加载，而不是把 adapter 压小。"}
+{"instruction": "QLoRA 会不会把正在训练的 LoRA adapter 也压成 4bit？", "response": "先说结论：通常不会。QLoRA 里保持可训练的是 LoRA adapter，量化的是 frozen base weights。"}
+{"instruction": "为什么 QLoRA 省显存，关键不在 adapter 变小？", "response": "先说结论：因为省显存的主体是大体积的 frozen base weights。adapter 本来就很小，真正省下来的主要是 base model 的存储和加载开销。"}
+{"instruction": "QLoRA 训练时 base weights 还是被冻结的吗？", "response": "先说结论：是的。QLoRA 仍然冻结 base weights，只是把它们用 4bit 方式加载，再训练 LoRA adapter。"}
+{"instruction": "如果只是量化 base model，为什么还能训练 adapter？", "response": "先说结论：因为 adapter 本身仍然保留为可训练参数，前向时它会和量化的 base weights 一起参与计算。"}
+{"instruction": "QLoRA 的可训练参数为什么和 LoRA 差不多？", "response": "先说结论：因为二者训练对象基本都是 LoRA adapter；QLoRA 只是把 frozen base weights 量化了，并没有增加新的大训练参数。"}
+{"instruction": "只有 adapter_model.safetensors，能直接推理吗？", "response": "先说结论：不能。adapter 不是完整模型，必须和对应 base model 一起加载才能推理。"}
+{"instruction": "为什么 PEFT 保存的是 adapter，而不是完整模型？", "response": "先说结论：因为 LoRA 的目标就是只保存新增的微调增量，完整 base model 体积太大，也不是训练重点。"}
+{"instruction": "adapter 文件里有没有完整 Qwen 权重？", "response": "先说结论：没有。adapter 文件主要保存 LoRA adapter 权重，不包含完整 base model 权重。"}
+{"instruction": "加载 adapter 时还需要哪个 base model？", "response": "先说结论：需要和训练时同一个 base model 及其对应配置一起加载，否则 adapter 的增量没有正确的落点。"}
+{"instruction": "merge 前和 merge 后推理路径有什么区别？", "response": "先说结论：merge 前需要 base model 加 adapter 一起算，merge 后 LoRA delta 已经合进 base 权重，推理时不再单独走 adapter 路径。"}
+{"instruction": "为什么 adapter checkpoint 不能单独当聊天模型？", "response": "先说结论：因为它只保存微调增量，不是完整模型。没有 base model，就没有可用的完整参数和结构。"}

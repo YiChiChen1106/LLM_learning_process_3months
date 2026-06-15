@@ -1,0 +1,10 @@
+{"prompt_id": "concept_lora_not_pretraining", "run": "core-concepts", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "开头否定说法，但随后又说 LoRA 是预训练的，自相矛盾。"}
+{"prompt_id": "concept_lora_not_full_update", "run": "core-concepts", "is_correct": false, "error_types": ["hallucinated_mechanism", "incomplete_answer"], "note": "没有说 adapter 训练对象，编造删除/新增 LoRA 帧的机制。"}
+{"prompt_id": "concept_lora_low_rank_delta", "run": "core-concepts", "is_correct": false, "error_types": ["incomplete_answer", "concept_confusion"], "note": "没有稳定说明低秩 A/B adapter 和冻结 base weights 的关系。"}
+{"prompt_id": "concept_lora_adapter_params", "run": "core-concepts", "is_correct": false, "error_types": ["factual_error"], "note": "仍然回答主要是 base weights，和预期的 lora_A/lora_B adapter 参数相反。"}
+{"prompt_id": "concept_lora_alpha", "run": "core-concepts", "is_correct": false, "error_types": ["concept_confusion", "incomplete_answer"], "note": "没有稳定说出 lora_alpha 是 scaling 超参数，不是参数数量。"}
+{"prompt_id": "concept_lora_rank", "run": "core-concepts", "is_correct": false, "error_types": ["concept_confusion", "incomplete_answer"], "note": "没有稳定说明 r 变大通常增加 adapter 参数量和表达能力。"}
+{"prompt_id": "concept_qlora_memory", "run": "core-concepts", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "错误说省显存因为 adapter 参数少，没有说量化 frozen base weights。"}
+{"prompt_id": "concept_qlora_trainable_params", "run": "core-concepts", "is_correct": false, "error_types": ["incomplete_answer", "concept_confusion"], "note": "没有回答 LoRA/QLoRA 可训练参数类似是因为都训练 adapter。"}
+{"prompt_id": "concept_qlora_adapter_not_quantized", "run": "core-concepts", "is_correct": false, "error_types": ["incomplete_answer", "concept_confusion"], "note": "能说不会量化 adapter，但错误说直接在原模型上训练，没说明量化 frozen base weights。"}
+{"prompt_id": "concept_quantized_base_forward", "run": "core-concepts", "is_correct": false, "error_types": ["incomplete_answer", "concept_confusion"], "note": "没有说明量化存储、计算时反量化/低精度计算以及 LoRA delta 叠加。"}

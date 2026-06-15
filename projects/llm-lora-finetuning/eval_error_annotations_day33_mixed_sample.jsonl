@@ -1,0 +1,10 @@
+{"prompt_id": "concept_lora_not_pretraining", "run": "mixed", "is_correct": false, "error_types": ["factual_error", "hallucinated_mechanism"], "note": "错误把 LoRA 说成预训练方法，并编造 Local Response Normalization。"}
+{"prompt_id": "concept_lora_not_full_update", "run": "mixed", "is_correct": false, "error_types": ["concept_confusion", "incomplete_answer"], "note": "虽然否定了全量更新，但说法仍然是选择部分参数更新，没有说清 LoRA 是训练 adapter。"}
+{"prompt_id": "concept_lora_low_rank_delta", "run": "mixed", "is_correct": false, "error_types": ["concept_confusion", "incomplete_answer"], "note": "提到低秩和增量，但仍然没有讲清 adapter 和冻结 base weights 的关系。"}
+{"prompt_id": "concept_lora_adapter_params", "run": "mixed", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "回答成 base weights 和 skip connection weights，完全不是 LoRA adapter 参数。"}
+{"prompt_id": "concept_lora_alpha", "run": "mixed", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "说 lora_alpha 不是参数数量，但把它解释成多个 alpha 参数控制权重因子，仍然不准确。"}
+{"prompt_id": "concept_lora_rank", "run": "mixed", "is_correct": false, "error_types": ["factual_error", "hallucinated_mechanism"], "note": "错误说 r 增大更接近高斯分布并减少参数数量，概念反了。"}
+{"prompt_id": "concept_qlora_memory", "run": "mixed", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "把显存和 adapter 参数多少混在一起，没有说到 QLoRA 的 frozen base weights 4bit 量化。"}
+{"prompt_id": "concept_qlora_trainable_params", "run": "mixed", "is_correct": false, "error_types": ["concept_confusion", "incomplete_answer"], "note": "没有回答可训练参数一样的原因，只是在泛泛区分 LoRA/QLoRA。"}
+{"prompt_id": "concept_qlora_adapter_not_quantized", "run": "mixed", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "错误说 LoRA 只量化 Lora 参数，不改变原模型结构和参数量。"}
+{"prompt_id": "concept_quantized_base_forward", "run": "mixed", "is_correct": false, "error_types": ["incomplete_answer", "concept_confusion"], "note": "只说量化前后参与乘法加法，没有说明 QLoRA 的 base weight 以量化存储并与 LoRA delta 叠加。"}

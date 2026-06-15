@@ -1,0 +1,10 @@
+{"prompt_id": "concept_lora_not_pretraining", "run": "v6", "is_correct": true, "error_types": [], "note": "结论正确，能说明 LoRA 不是 pretraining；但把 LoRA 说成 fine-tuning code，表达还不够标准。"}
+{"prompt_id": "concept_lora_not_full_update", "run": "v6", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "说不是更新全部参数是对的，但又说 LoRA 对 base model 参数微调，遗漏 adapter 才是训练对象。"}
+{"prompt_id": "concept_lora_low_rank_delta", "run": "v6", "is_correct": false, "error_types": ["factual_error", "incomplete_answer"], "note": "没有解释低秩 A/B 增量，还错误说 LoRA 训练 base weights。"}
+{"prompt_id": "concept_lora_adapter_params", "run": "v6", "is_correct": false, "error_types": ["factual_error"], "note": "回答 base weights，和预期的 lora_A/lora_B adapter 参数相反。"}
+{"prompt_id": "concept_lora_alpha", "run": "v6", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "把 lora_alpha 说成参数数量，没有说清它是 scaling 相关超参数。"}
+{"prompt_id": "concept_lora_rank", "run": "v6", "is_correct": false, "error_types": ["incomplete_answer", "factual_error"], "note": "说 r 增大会让参数变多是对的，但说不会改变训练速度不稳妥，也漏掉表达能力和成本。"}
+{"prompt_id": "concept_qlora_memory", "run": "v6", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "正确否定 adapter 更少，但错误说 QLoRA 只训练 base weights，没有说量化 frozen base weights。"}
+{"prompt_id": "concept_qlora_trainable_params", "run": "v6", "is_correct": false, "error_types": ["factual_error", "concept_confusion"], "note": "把 LoRA/QLoRA 说成预训练模型，并错误说只训练 base weights。"}
+{"prompt_id": "concept_qlora_adapter_not_quantized", "run": "v6", "is_correct": false, "error_types": ["factual_error"], "note": "结论说不会量化 adapter 是对的，但随后说 LoRA 只量化 adapter，核心机制反了。"}
+{"prompt_id": "concept_quantized_base_forward", "run": "v6", "is_correct": false, "error_types": ["hallucinated_mechanism", "incomplete_answer"], "note": "没有说明量化存储和计算时反量化/低精度计算，编造成 32-bit 带符号整数。"}
