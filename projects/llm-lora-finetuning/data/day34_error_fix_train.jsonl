@@ -1,0 +1,16 @@
+{"instruction":"lora_alpha 是不是参数数量？它最主要控制什么？","response":"先说结论：不是。lora_alpha 主要控制 LoRA delta 的缩放强度，常见 scaling 是 alpha / r，不是参数数量，也不是量化参数。"}
+{"instruction":"lora_alpha 和 QLoRA 省显存有关系吗？","response":"先说结论：没有直接关系。QLoRA 省显存主要靠 frozen base weights 4bit 量化加载，lora_alpha 只影响 LoRA delta 的输出缩放。"}
+{"instruction":"如果把 lora_alpha 调大，会发生什么？","response":"先说结论：通常会让 LoRA delta 的影响更强。它改变的是缩放强度，不是训练参数量。"}
+{"instruction":"lora_alpha 是不是量化超参？","response":"先说结论：不是。量化超参属于 base weights 的存储和计算方式，lora_alpha 属于 LoRA scaling。"}
+{"instruction":"QLoRA 为什么更省显存，是因为 adapter 更少吗？","response":"先说结论：不是。QLoRA 省显存主要是因为 frozen base weights 用 4bit 量化加载，adapter 本来就很小。"}
+{"instruction":"QLoRA 量化的是哪部分？","response":"先说结论：主要是 frozen base weights，不是正在训练的 LoRA adapter。"}
+{"instruction":"LoRA 和 QLoRA 的可训练参数为什么可能一样？","response":"先说结论：因为二者通常都训练同一批 LoRA adapter，base 是否量化不会改变 adapter 参数量。"}
+{"instruction":"如果只看 trainable params，能区分 LoRA 和 QLoRA 吗？","response":"先说结论：不能。trainable params 主要看 adapter，LoRA 和 QLoRA 的差别主要在 frozen base weights 是否量化。"}
+{"instruction":"QLoRA 训练时 base weights 还是被冻结的吗？","response":"先说结论：是。QLoRA 仍然冻结 base weights，只是把它们用 4bit 方式加载。"}
+{"instruction":"LoRA 和 QLoRA 都训练谁？","response":"先说结论：主要都训练 LoRA adapter，比如 lora_A.weight 和 lora_B.weight；base weights 通常冻结。"}
+{"instruction":"QLoRA forward 时，量化后的 base weight 怎么参与计算？","response":"先说结论：base weights 以量化形式存储，计算时按量化实现参与前向，再和 LoRA delta 相加。"}
+{"instruction":"量化后的 base weight 需要先还原吗？","response":"先说结论：需要在计算路径里按量化实现处理，核心是用量化 base 参与前向，然后加上 LoRA 增量。"}
+{"instruction":"merge 前和 merge 后推理路径有什么区别？","response":"先说结论：merge 前是 base + adapter 一起算，merge 后 LoRA delta 已经合进权重，推理时不再单独走 adapter 路径。"}
+{"instruction":"只有 adapter 权重时能直接推理吗？","response":"先说结论：不能。adapter 只是增量，必须和对应 base model 一起加载。"}
+{"instruction":"为什么 QLoRA 没有把 adapter 也量化成 4bit？","response":"先说结论：因为 adapter 还要训练，通常保持较高精度；量化的是 frozen base weights。"}
+{"instruction":"为什么 LoRA 和 QLoRA 的 train loss 可以看起来差不多，但显存差很多？","response":"先说结论：因为 loss 主要反映训练效果，显存差别主要来自 base weights 是否 4bit 量化加载。"}
