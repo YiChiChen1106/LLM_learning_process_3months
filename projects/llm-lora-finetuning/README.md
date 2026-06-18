@@ -44,6 +44,40 @@ python prepare_sample_data.py
 python train_lora.py --config configs/smoke.yaml
 ```
 
+## 学习助手 V1
+
+`study_assistant.py` 把固定评测题库扩展成一个最小学习助手闭环：
+
+```text
+出题 -> 回答 -> 自动粗判 -> 保存记录 -> 错题复盘 -> 推荐下一题
+```
+
+答一题并自动粗判：
+
+```powershell
+.\.venv\Scripts\python.exe projects\llm-lora-finetuning\study_assistant.py --prompt-id concept_qlora_memory --answer "因为 frozen base weights 用 4bit 量化加载" --auto-grade
+```
+
+生成错题复盘报告：
+
+```powershell
+.\.venv\Scripts\python.exe projects\llm-lora-finetuning\study_assistant.py --review --review-md outputs\study_review.md
+```
+
+根据薄弱点推荐下一题：
+
+```powershell
+.\.venv\Scripts\python.exe projects\llm-lora-finetuning\study_assistant.py --recommend-next
+```
+
+默认作答记录写入：
+
+```text
+outputs/study_attempts.jsonl
+```
+
+`outputs/` 已被 `.gitignore` 忽略，不会提交本地学习记录。
+
 ## 验收标准
 
 - 训练前保存 baseline 输出。
