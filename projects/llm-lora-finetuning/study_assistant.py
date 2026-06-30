@@ -69,6 +69,35 @@ def contains_any(answer: str, terms: list[str]) -> bool:
     return any(normalize_text(term) in normalized_answer for term in terms)
 
 
+def is_negated_match(answer: str, term: str) -> bool:
+    normalized_answer = normalize_text(answer)
+    normalized_term = normalize_text(term)
+    negation_prefixes = [
+        "不是因为",
+        "并不是因为",
+        "不是由于",
+        "并不是由于",
+        "不是靠",
+        "不靠",
+        "不算",
+        "不能算",
+        "不能",
+        "不是",
+        "并不是",
+        "不",
+    ]
+    return any(f"{prefix}{normalized_term}" in normalized_answer for prefix in negation_prefixes)
+
+
+def contains_non_negated_any(answer: str, terms: list[str]) -> bool:
+    normalized_answer = normalize_text(answer)
+    for term in terms:
+        normalized_term = normalize_text(term)
+        if normalized_term in normalized_answer and not is_negated_match(answer, term):
+            return True
+    return False
+
+
 def unique_values(values: list[str]) -> list[str]:
     seen = set()
     unique = []
@@ -85,7 +114,7 @@ def grade_answer(user_answer: str, rule: dict[str, object]) -> dict[str, object]
     forbidden_feedbacks = []
     error_types = []
     for forbidden in rule.get("forbidden", []):
-        if contains_any(user_answer, forbidden.get("terms", [])):
+        if contains_non_negated_any(user_answer, forbidden.get("terms", [])):
             error_types.append(str(forbidden.get("error_type", "factual_error")))
             feedback = str(forbidden.get("feedback", "命中了错误说法。"))
             forbidden_feedbacks.append(feedback)
@@ -153,6 +182,8 @@ def append_attempts(path: Path, records: list[dict[str, object]]) -> None:
 
 
 def load_attempts(path: Path) -> list[dict[str, object]]:
+    if not path.exists():
+        return []
     attempts = []
     with path.open(encoding="utf-8") as f:
         for line in f:
@@ -166,6 +197,35 @@ def load_attempts(path: Path) -> list[dict[str, object]]:
 def prompt_category(prompt_id: object) -> str:
     text = str(prompt_id or "unknown")
     return text.split("_", 1)[0] if "_" in text else text
+
+
+def prompt_subtopic(prompt_id: object) -> str:
+    text = str(prompt_id or "unknown")
+    if "qlora" in text or "quantized_base" in text:
+        return "QLoRA 量化"
+    if "lora_" in text:
+        return "LoRA 基础"
+    if "adapter" in text or "merge" in text:
+        return "adapter 与 merge"
+    if "target_module" in text:
+        return "target_modules"
+    if any(key in text for key in ["jsonl", "dataset", "instruction_response", "tokenizer"]):
+        return "Dataset / tokenizer"
+    if any(key in text for key in ["attention_mask", "labels", "loss", "label_filter", "mask_vs_loss"]):
+        return "labels 与 loss"
+    if any(key in text for key in ["collator", "padding", "truncation"]):
+        return "padding / collator"
+    if any(key in text for key in ["gradient_accumulation", "bf16", "save_adapter"]):
+        return "训练配置"
+    if any(key in text for key in ["generate_eval", "eval_", "iteration_loop"]):
+        return "评测闭环"
+    if text.startswith("failure_"):
+        return "失败模式"
+    if any(key in text for key in ["0_5b", "bigger_model", "personal_assistant"]):
+        return "模型能力边界"
+    if any(key in text for key in ["toy_dataset", "from_toy", "public_data", "synthetic_data"]):
+        return "数据来源与质量"
+    return prompt_category(text)
 
 
 def sorted_counter(counter: Counter[str]) -> dict[str, int]:
@@ -228,6 +288,7 @@ def build_recommendation(question: dict[str, object], reason: str) -> dict[str, 
         "prompt": question["prompt"],
         "expected": question["expected"],
         "category": prompt_category(prompt_id),
+        "subtopic": prompt_subtopic(prompt_id),
         "reason": reason,
     }
 
@@ -235,21 +296,44 @@ def build_recommendation(question: dict[str, object], reason: str) -> dict[str, 
 def recommend_next_question(
     questions: list[dict[str, object]],
     records: list[dict[str, object]],
+    rng: random.Random | None = None,
 ) -> dict[str, object]:
     if not questions:
         raise ValueError("No questions loaded.")
 
+    rng = rng or random.Random()
     questions_by_id = {str(question["id"]): question for question in questions}
     attempted_ids = {str(record.get("prompt_id")) for record in records if record.get("prompt_id")}
     needs_review = [record for record in records if is_needs_review(record)]
 
     if needs_review:
+        weak_subtopic_counts = Counter(prompt_subtopic(record.get("prompt_id")) for record in needs_review)
+        weak_subtopic = top_counter_item(weak_subtopic_counts)
+        weak_subtopic_candidates = [
+            question
+            for question in questions
+            if prompt_subtopic(str(question["id"])) == weak_subtopic
+            and str(question["id"]) not in attempted_ids
+        ]
+        if weak_subtopic_candidates:
+            return build_recommendation(
+                rng.choice(weak_subtopic_candidates),
+                f"优先练习薄弱知识点: {weak_subtopic}。",
+            )
+
         weak_category_counts = Counter(prompt_category(record.get("prompt_id")) for record in needs_review)
         weak_category = top_counter_item(weak_category_counts)
-        for question in questions:
-            prompt_id = str(question["id"])
-            if prompt_category(prompt_id) == weak_category and prompt_id not in attempted_ids:
-                return build_recommendation(question, f"优先练习薄弱类别: {weak_category}。")
+        weak_category_candidates = [
+            question
+            for question in questions
+            if prompt_category(str(question["id"])) == weak_category
+            and str(question["id"]) not in attempted_ids
+        ]
+        if weak_category_candidates:
+            return build_recommendation(
+                rng.choice(weak_category_candidates),
+                f"优先练习薄弱类别: {weak_category}。",
+            )
 
         weak_prompt_counts = Counter(
             str(record.get("prompt_id"))
@@ -263,12 +347,73 @@ def recommend_next_question(
                 f"复习错题最多的题目: {prompt_id}。",
             )
 
-    for question in questions:
-        prompt_id = str(question["id"])
-        if prompt_id not in attempted_ids:
-            return build_recommendation(question, "没有明显薄弱错题，推荐未作答题目。")
+    unanswered_candidates = [
+        question for question in questions if str(question["id"]) not in attempted_ids
+    ]
+    if unanswered_candidates:
+        return build_recommendation(
+            rng.choice(unanswered_candidates),
+            "没有明显薄弱错题，推荐未作答题目。",
+        )
 
     return build_recommendation(questions[0], "所有题都已有记录，推荐从第一题开始复习。")
+
+
+def grade_with_rules(
+    user_answer: str,
+    rules: list[dict[str, object]],
+    prompt_id: str,
+) -> dict[str, object]:
+    try:
+        return grade_answer(user_answer, find_grading_rule(rules, prompt_id))
+    except ValueError:
+        return {
+            "grade": "ungraded",
+            "error_types": [],
+            "feedback": "这道题还没有自动判分规则，需要人工检查。",
+            "review_tip": "",
+        }
+
+
+def run_quiz(
+    questions: list[dict[str, object]],
+    rules: list[dict[str, object]],
+    attempts: list[dict[str, object]],
+    output_path: Path,
+    rng: random.Random | None = None,
+) -> None:
+    rng = rng or random.Random()
+    print("进入 quiz 模式，输入 q 退出。")
+    while True:
+        recommendation = recommend_next_question(questions, attempts, rng=rng)
+        question = find_question_by_id(questions, recommendation["prompt_id"])
+        print("")
+        print(f"推荐原因: {recommendation['reason']}")
+        print(f"题目 ID: {question['id']}")
+        print(f"题目: {question['prompt']}")
+        user_answer = input("你的回答: ").strip()
+        if user_answer.lower() in {"q", "quit", "exit"}:
+            print("退出 quiz。")
+            break
+
+        grading = grade_with_rules(user_answer, rules, str(question["id"]))
+        print(f"自动判分: {grading['grade']}")
+        if grading["feedback"]:
+            print(f"反馈: {grading['feedback']}")
+        if grading["review_tip"]:
+            print(f"复习建议: {grading['review_tip']}")
+
+        record = build_attempt_record(
+            question=question,
+            user_answer=user_answer,
+            grade=str(grading["grade"]),
+            error_types=grading["error_types"],
+            feedback=str(grading["feedback"]),
+            review_tip=str(grading["review_tip"]),
+        )
+        append_attempts(output_path, [record])
+        attempts.append(record)
+        print(f"已保存作答记录: {output_path}")
 
 
 def format_accuracy(value: float | None) -> str:
@@ -334,14 +479,17 @@ def default_output_path() -> Path:
     return Path(__file__).parents[2] / "outputs" / "study_attempts.jsonl"
 
 
-def configure_stdout() -> None:
+def configure_stdio() -> None:
+    if hasattr(sys.stdin, "reconfigure"):
+        sys.stdin.reconfigure(encoding="utf-8")
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
 
 def main() -> None:
-    configure_stdout()
+    configure_stdio()
     parser = argparse.ArgumentParser(description="Ask one study question and save an attempt record.")
+    parser.add_argument("--quiz", action="store_true")
     parser.add_argument("--review", action="store_true")
     parser.add_argument("--recommend-next", action="store_true")
     parser.add_argument("--questions", type=Path, default=default_questions_path())
@@ -371,8 +519,19 @@ def main() -> None:
         recommendation = recommend_next_question(
             load_questions(args.questions),
             load_attempts(args.attempts),
+            rng=random.Random(args.seed),
         )
         print(json.dumps(recommendation, ensure_ascii=False, indent=2))
+        return
+
+    if args.quiz:
+        run_quiz(
+            questions=load_questions(args.questions),
+            rules=load_grading_rules(args.rules),
+            attempts=load_attempts(args.attempts),
+            output_path=args.output,
+            rng=random.Random(args.seed),
+        )
         return
 
     questions = load_questions(args.questions)
@@ -385,15 +544,7 @@ def main() -> None:
 
     if args.auto_grade:
         rules = load_grading_rules(args.rules)
-        try:
-            grading = grade_answer(user_answer, find_grading_rule(rules, str(question["id"])))
-        except ValueError:
-            grading = {
-                "grade": "ungraded",
-                "error_types": [],
-                "feedback": "这道题还没有自动判分规则，需要人工检查。",
-                "review_tip": "",
-            }
+        grading = grade_with_rules(user_answer, rules, str(question["id"]))
         args.grade = grading["grade"]
         args.error_type = grading["error_types"]
         args.feedback = grading["feedback"]
